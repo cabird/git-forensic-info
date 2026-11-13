@@ -1,0 +1,12 @@
+$ git log --graph --oneline
+* a30b4b9 Release 1.0
+*   410cc9f Merge branch 'feature'
+|\  
+| * 3d516dd Add --verbose flag
+* | 909aece Add currency setting
+|/  
+* 253a528 Make run.sh executable
+* ec7b6b5 Add tools directory
+* 7058063 Rename guide to handbook
+* 06ade68 Fix rounding in util.py
+* 727ea5c Initial project

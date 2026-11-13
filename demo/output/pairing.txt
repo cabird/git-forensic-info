@@ -1,0 +1,11 @@
+$ ../pair-commits.sh original filtered src
+subject                   original  filtered   original:src  filtered:src 
+Initial project           727ea5c   4391306    3055bb6       3055bb6       same
+Fix rounding in util.py   06ade68   9718e64    52dc7bb       52dc7bb       same
+Rename guide to handbook  7058063   -          52dc7bb       -            
+Add tools directory       ec7b6b5   -          52dc7bb       -            
+Make run.sh executable    253a528   -          52dc7bb       -            
+Add currency setting      909aece   69b0a9e    01474df       01474df       same
+Add --verbose flag        3d516dd   6a06b56    51e6743       51e6743       same
+Merge branch 'feature'    410cc9f   bbb113c    f761857       f761857       same
+Release 1.0               a30b4b9   a8b1208    003e373       003e373       same

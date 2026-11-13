@@ -1,0 +1,130 @@
+/* Inlined into dist/primer.html by build.py. Light mode only; system fonts only. */
+:root {
+  --ink: #1b1b1b;
+  --muted: #555555;
+  --rule: #d9d9d4;
+  --paper: #ffffff;
+  --wash: #f6f6f3;
+  --accent: #1f5fa8;
+  --why: #8a5a00;
+  --why-bg: #fdf6e3;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+  max-width: calc(736px + 2rem);
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.6 var(--sans);
+}
+/* Prose runs to about 70 characters; figures, code and tables may use the full column. */
+p, ul, ol, .callout, h1, h2, h3 { max-width: 38rem; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.75rem; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 1.35rem; line-height: 1.3; margin: 0 0 0.9rem; text-wrap: balance; }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 0.5rem; }
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin-bottom: 0.35rem; }
+a { color: var(--accent); }
+header p { color: var(--muted); font-size: 1.08rem; }
+section { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+.num { color: var(--muted); font-weight: 400; margin-right: 0.35rem; }
+
+code { font-family: var(--mono); font-size: 0.86em; background: var(--wash); padding: 0.1em 0.3em; border-radius: 3px; }
+pre {
+  font: 13px/1.5 var(--mono);
+  background: var(--wash);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+}
+p code, li code, td code { white-space: nowrap; }
+.cheatsheet td:first-child code { white-space: normal; }
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .cmd { font-weight: 700; }
+pre .none { color: var(--muted); font-style: italic; }
+
+nav.toc { margin-top: 2rem; padding: 1rem 1.25rem; background: var(--wash); border-radius: 8px; }
+nav.toc h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+nav.toc ol { columns: 2; column-gap: 2.5rem; max-width: none; margin: 0; font-size: 0.95rem; }
+nav.toc li { break-inside: avoid; }
+nav.toc li.toc-extra { list-style: none; font-weight: 600; }
+
+figure { margin: 1.5rem 0 1.75rem; }
+.figure-scroll { overflow-x: auto; }
+figure svg { display: block; width: 100%; min-width: 660px; max-width: 736px; height: auto; }
+figcaption { margin-top: 0.6rem; max-width: 38rem; font-size: 0.9rem; line-height: 1.5; color: var(--muted); }
+figcaption strong { color: var(--ink); }
+
+.callout { margin: 1.5rem 0 0; padding: 0.85rem 1.1rem; border-radius: 6px; }
+.callout > :last-child { margin-bottom: 0; }
+.callout-title { margin-bottom: 0.3rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.callout.why { background: var(--why-bg); border-left: 4px solid var(--why); }
+.callout.why .callout-title { color: var(--why); }
+.callout.box { background: var(--wash); border: 1px solid var(--rule); max-width: none; }
+.callout.box li { max-width: 40rem; }
+
+.table-wrap, table { max-width: 100%; }
+table { border-collapse: collapse; margin: 0 0 1.25rem; font-size: 0.92rem; display: block; overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: 0.4rem 1rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+th { font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--muted); }
+
+/* The cheat sheet is denser and prints on its own pages. */
+.cheatsheet { border-top: 3px solid var(--ink); }
+.cheatsheet ol { max-width: none; columns: 2; column-gap: 2.5rem; font-size: 0.95rem; }
+.cheatsheet li { break-inside: avoid; }
+.cheatsheet h3 { margin-top: 1.25rem; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.cheatsheet table { font-size: 0.86rem; width: 100%; display: table; margin-bottom: 0.5rem; }
+.cheatsheet td { padding: 0.25rem 1rem 0.25rem 0; }
+.cheatsheet td:first-child { width: 54%; }
+.cheatsheet thead { display: none; }
+/* The notation table is the one introduced by a sentence; its first column is short. */
+.cheatsheet p + table td:first-child { width: 22%; }
+.cheatsheet > p { font-size: 0.92rem; margin-bottom: 0.5rem; }
+.cheatsheet table + p { margin-top: 0.9rem; }
+.sheet-note { color: var(--muted); font-size: 0.9rem; }
+.print-only { display: none; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  nav.toc ol, .cheatsheet ol { columns: 1; }
+  .cheatsheet table, .cheatsheet tbody, .cheatsheet tr, .cheatsheet td { display: block; width: auto; }
+  .cheatsheet td:first-child { width: auto; border-bottom: 0; padding-bottom: 0; }
+}
+
+@media print {
+  @page { margin: 17mm 16mm; }
+  body { max-width: none; padding: 0; font-size: 10.5pt; line-height: 1.45; }
+  a { color: inherit; text-decoration: none; }
+  .screen-only { display: none; }
+  .print-only { display: block; }
+  h2, h3, .callout-title { break-after: avoid; }
+  figure, pre, table, tr, .callout, nav.toc { break-inside: avoid; }
+  section { margin-top: 1.6rem; padding-top: 1rem; }
+  pre { font-size: 8.5pt; white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+  .figure-scroll { overflow: visible; }
+  figure svg { min-width: 0; }
+  table { display: table; overflow: visible; }
+  /* Dense on paper, in the primer and in the standalone sheet alike. Where the
+     browser supports named pages, the sheet also gets narrower margins so it
+     fits on one page inside the primer too. */
+  @page sheet { margin: 10mm 12mm 12mm; }
+  .cheatsheet { page: sheet; break-before: page; border-top: 0; margin-top: 0; padding-top: 0; font-size: 9pt; line-height: 1.32; }
+  .cheatsheet h2 { margin-bottom: 0.3rem; }
+  .cheatsheet > p { font-size: 9pt; margin-bottom: 0.25rem; max-width: none; }
+  .cheatsheet table + p { margin-top: 0.5rem; }
+  .cheatsheet ol { font-size: 9pt; line-height: 1.3; }
+  .cheatsheet li { margin-bottom: 0.1rem; }
+  .cheatsheet table { font-size: 8.4pt; margin-bottom: 0; }
+  .cheatsheet td { padding: 0.12rem 0.8rem 0.12rem 0; }
+  .cheatsheet td:first-child { width: 50%; }
+  .cheatsheet p + table td:first-child { width: 22%; }
+  .cheatsheet h3 { margin: 0.55rem 0 0.15rem; font-size: 7.8pt; }
+}

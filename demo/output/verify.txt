@@ -1,0 +1,7 @@
+$ git verify-commit a30b4b9
+gpg: Signature made Fri Mar 15 10:00:00 2024 UTC
+gpg:                using EDDSA key D35B7073DE677DC3BA4DC7867E5FDA60395E9A41
+gpg: Good signature from "Ada Example <ada@example.com>" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: D35B 7073 DE67 7DC3 BA4D  C786 7E5F DA60 395E 9A41

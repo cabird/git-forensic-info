@@ -1,0 +1,12 @@
+$ git fsck --unreachable --no-reflogs
+unreachable tree d45d0e8966d149712f2207907df5bfebbedef231
+unreachable blob dac272dee92e73d1be1516ff5e0adb1f37bb9e4d
+unreachable commit 5d670a1b19e61696903517b3cfd630d5cbb1579b
+unreachable tree f01054a6a2d802670f9d7748e1dc3a7d2d79ea74
+$ git reflog -2
+a30b4b9 HEAD@{0}: reset: moving to HEAD~1
+5d670a1 HEAD@{1}: commit: WIP debug notes
+$ git cat-file -p dac272d
+db password: hunter2  (remove before committing!)
+$ git -C ../fresh cat-file -t dac272d
+fatal: Not a valid object name dac272d

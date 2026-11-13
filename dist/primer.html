@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git Internals for Software Forensics</title>
+<style>
+/* Inlined into dist/primer.html by build.py. Light mode only; system fonts only. */
+:root {
+  --ink: #1b1b1b;
+  --muted: #555555;
+  --rule: #d9d9d4;
+  --paper: #ffffff;
+  --wash: #f6f6f3;
+  --accent: #1f5fa8;
+  --why: #8a5a00;
+  --why-bg: #fdf6e3;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+  max-width: calc(736px + 2rem);
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.6 var(--sans);
+}
+/* Prose runs to about 70 characters; figures, code and tables may use the full column. */
+p, ul, ol, .callout, h1, h2, h3 { max-width: 38rem; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.75rem; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 1.35rem; line-height: 1.3; margin: 0 0 0.9rem; text-wrap: balance; }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 0.5rem; }
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin-bottom: 0.35rem; }
+a { color: var(--accent); }
+header p { color: var(--muted); font-size: 1.08rem; }
+section { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+.num { color: var(--muted); font-weight: 400; margin-right: 0.35rem; }
+
+code { font-family: var(--mono); font-size: 0.86em; background: var(--wash); padding: 0.1em 0.3em; border-radius: 3px; }
+pre {
+  font: 13px/1.5 var(--mono);
+  background: var(--wash);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+}
+p code, li code, td code { white-space: nowrap; }
+.cheatsheet td:first-child code { white-space: normal; }
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .cmd { font-weight: 700; }
+pre .none { color: var(--muted); font-style: italic; }
+
+nav.toc { margin-top: 2rem; padding: 1rem 1.25rem; background: var(--wash); border-radius: 8px; }
+nav.toc h2 { font-size: 1rem; margin-bottom: 0.5rem; }
+nav.toc ol { columns: 2; column-gap: 2.5rem; max-width: none; margin: 0; font-size: 0.95rem; }
+nav.toc li { break-inside: avoid; }
+nav.toc li.toc-extra { list-style: none; font-weight: 600; }
+
+figure { margin: 1.5rem 0 1.75rem; }
+.figure-scroll { overflow-x: auto; }
+figure svg { display: block; width: 100%; min-width: 660px; max-width: 736px; height: auto; }
+figcaption { margin-top: 0.6rem; max-width: 38rem; font-size: 0.9rem; line-height: 1.5; color: var(--muted); }
+figcaption strong { color: var(--ink); }
+
+.callout { margin: 1.5rem 0 0; padding: 0.85rem 1.1rem; border-radius: 6px; }
+.callout > :last-child { margin-bottom: 0; }
+.callout-title { margin-bottom: 0.3rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.callout.why { background: var(--why-bg); border-left: 4px solid var(--why); }
+.callout.why .callout-title { color: var(--why); }
+.callout.box { background: var(--wash); border: 1px solid var(--rule); max-width: none; }
+.callout.box li { max-width: 40rem; }
+
+.table-wrap, table { max-width: 100%; }
+table { border-collapse: collapse; margin: 0 0 1.25rem; font-size: 0.92rem; display: block; overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: 0.4rem 1rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+th { font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--muted); }
+
+/* The cheat sheet is denser and prints on its own pages. */
+.cheatsheet { border-top: 3px solid var(--ink); }
+.cheatsheet ol { max-width: none; columns: 2; column-gap: 2.5rem; font-size: 0.95rem; }
+.cheatsheet li { break-inside: avoid; }
+.cheatsheet h3 { margin-top: 1.25rem; font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.cheatsheet table { font-size: 0.86rem; width: 100%; display: table; margin-bottom: 0.5rem; }
+.cheatsheet td { padding: 0.25rem 1rem 0.25rem 0; }
+.cheatsheet td:first-child { width: 54%; }
+.cheatsheet thead { display: none; }
+/* The notation table is the one introduced by a sentence; its first column is short. */
+.cheatsheet p + table td:first-child { width: 22%; }
+.cheatsheet > p { font-size: 0.92rem; margin-bottom: 0.5rem; }
+.cheatsheet table + p { margin-top: 0.9rem; }
+.sheet-note { color: var(--muted); font-size: 0.9rem; }
+.print-only { display: none; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  nav.toc ol, .cheatsheet ol { columns: 1; }
+  .cheatsheet table, .cheatsheet tbody, .cheatsheet tr, .cheatsheet td { display: block; width: auto; }
+  .cheatsheet td:first-child { width: auto; border-bottom: 0; padding-bottom: 0; }
+}
+
+@media print {
+  @page { margin: 17mm 16mm; }
+  body { max-width: none; padding: 0; font-size: 10.5pt; line-height: 1.45; }
+  a { color: inherit; text-decoration: none; }
+  .screen-only { display: none; }
+  .print-only { display: block; }
+  h2, h3, .callout-title { break-after: avoid; }
+  figure, pre, table, tr, .callout, nav.toc { break-inside: avoid; }
+  section { margin-top: 1.6rem; padding-top: 1rem; }
+  pre { font-size: 8.5pt; white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+  .figure-scroll { overflow: visible; }
+  figure svg { min-width: 0; }
+  table { display: table; overflow: visible; }
+  /* Dense on paper, in the primer and in the standalone sheet alike. Where the
+     browser supports named pages, the sheet also gets narrower margins so it
+     fits on one page inside the primer too. */
+  @page sheet { margin: 10mm 12mm 12mm; }
+  .cheatsheet { page: sheet; break-before: page; border-top: 0; margin-top: 0; padding-top: 0; font-size: 9pt; line-height: 1.32; }
+  .cheatsheet h2 { margin-bottom: 0.3rem; }
+  .cheatsheet > p { font-size: 9pt; margin-bottom: 0.25rem; max-width: none; }
+  .cheatsheet table + p { margin-top: 0.5rem; }
+  .cheatsheet ol { font-size: 9pt; line-height: 1.3; }
+  .cheatsheet li { margin-bottom: 0.1rem; }
+  .cheatsheet table { font-size: 8.4pt; margin-bottom: 0; }
+  .cheatsheet td { padding: 0.12rem 0.8rem 0.12rem 0; }
+  .cheatsheet td:first-child { width: 50%; }
+  .cheatsheet p + table td:first-child { width: 22%; }
+  .cheatsheet h3 { margin: 0.55rem 0 0.15rem; font-size: 7.8pt; }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>Git Internals for Software Forensics</h1>
+<p>You already use Git every day. This primer explains the few ideas underneath it: enough to see why two matching hashes can settle a question about thousands of files, and where a hash stops being evidence.</p>
+<p>Every hash and every piece of command output below comes from a small demo repository that a script builds from scratch, so you can rebuild it and follow along. Reading time is about 20 minutes. A cheat sheet is at the end.</p>
+<p class="sheet-note screen-only">Also available: <a href="primer.pdf">this primer as a PDF</a>, and the
+<a href="cheat-sheet.html">one-page cheat sheet</a> (<a href="cheat-sheet.pdf">PDF</a>).</p>
+</header>
+<nav class="toc" aria-label="Contents">
+<h2>Contents</h2>
+<ol>
+<li><a href="#content-addressed">Git is a content-addressed database</a></li>
+<li><a href="#object-types">The four object types</a></li>
+<li><a href="#snapshots">Snapshots, not diffs</a></li>
+<li><a href="#merkle">The Merkle structure</a></li>
+<li><a href="#what-a-hash-proves">What a hash proves, and what it doesn’t</a></li>
+<li><a href="#rewritten-history">Rewritten history</a></li>
+<li><a href="#comparing-repositories">Comparing two repositories</a></li>
+<li><a href="#case-study">Case study: a production and an unofficial copy</a></li>
+<li><a href="#loose-file">Checking a loose file against a repository</a></li>
+<li><a href="#renames">Renames, moves and copies</a></li>
+<li><a href="#timestamps">Timestamps in depth</a></li>
+<li><a href="#recovery">Recovering deleted or unreachable material</a></li>
+<li><a href="#brief-notes">Brief notes</a></li>
+<li><a href="#safe-handling">Safe handling of evidence repositories</a></li>
+<li class="toc-extra"><a href="#cheat-sheet">Cheat sheet</a></li>
+</ol>
+</nav>
+<main>
+<section id="content-addressed"><h2><span class="num">1</span> Git is a content-addressed database</h2>
+<p>Most of us picture Git as a chain of diffs. It isn&rsquo;t one. Underneath, Git is a key-value store: you give it some bytes, it stores them, and it hands back a key. The key is the hash of the bytes. Branches, history, diffs and renames are all built on top of that one idea.</p>
+<p>Two things follow. The same content always gets the same key, on any machine, in any repository. And content cannot change without its key changing, so a key names exactly one piece of content.</p>
+<p>The hash is SHA-1, written as 40 hex characters and usually shortened to the first seven or so. Git uses a hardened SHA-1 that detects the known collision attacks, and newer repositories can use SHA-256 instead (64 characters, same ideas).</p>
+<pre class="term"><code><span class="cmd">$ git hash-object src/util.py</span>
+4af79c158719bdf44e8c6296c08019724f549d69
+<span class="cmd">$ (printf 'blob %d\0' "$(wc -c &lt; src/util.py)"; cat src/util.py) | sha1sum</span>
+4af79c158719bdf44e8c6296c08019724f549d69  -</code></pre>
+<p><code>git hash-object</code> works on any file, inside a repository or not. The second command shows there is no magic in it: a file&rsquo;s key is the SHA-1 of a short header (the word <code>blob</code>, the size in bytes, a zero byte) followed by the file&rsquo;s contents.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>A Git hash is a fingerprint you can compute yourself from the material in front of you. You do not have to trust the repository, the tool, or whoever handed it over. If the bytes hash to the value, they are the bytes.</p>
+</div>
+</section>
+<section id="object-types"><h2><span class="num">2</span> The four object types</h2>
+<p>Everything Git stores is one of four kinds of object. <a href="#fig-object_types">Figure 1</a> shows one of each from the demo repository.</p>
+<figure id="fig-object_types"><div class="figure-scroll"><svg viewBox="0 0 736 406" width="736" height="406" role="img" aria-label="The four Git object types and how they point to one another: tag to commit, commit to tree, tree to blob." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>The four Git object types and how they point to one another: tag to commit, commit to tree, tree to blob.</title><defs><marker id="ah-object_types-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#1b1b1b"/></marker></defs><path d="M20,14 H348 V180 H20 L8,97 Z" fill="#f2e9fa" stroke="#6b3fa0" stroke-width="1.5" stroke-linejoin="round"/><circle cx="20" cy="97" r="2.2" fill="#6b3fa0"/><text x="30" y="34" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">annotated tag</text><text x="332" y="34" font-size="12" text-anchor="end" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3adddfc</text><text x="30" y="56" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">object  a30b4b9…</text><text x="30" y="73" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">type    commit</text><text x="30" y="90" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">tag     v1.0</text><text x="30" y="107" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">tagger  Ada Example … 1710497100 +0000</text><text x="30" y="141" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">Version 1.0</text><path d="M20,154 H336" stroke="#6b3fa0" stroke-width="1" stroke-opacity="0.35"/><text x="24" y="171" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">A named pointer to one object, with a message.</text><rect x="388" y="14" width="340" height="183" rx="15" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="404" y="34" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">commit</text><text x="712" y="34" font-size="12" text-anchor="end" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">a30b4b9</text><text x="404" y="56" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">tree       73627d2…</text><text x="404" y="73" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">parent     410cc9f…</text><text x="404" y="90" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">author     Ada Example … 1710496800 +0000</text><text x="404" y="107" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">committer  Ada Example … 1710496800 +0000</text><text x="404" y="124" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">gpgsig     -----BEGIN PGP SIGNATURE …</text><text x="404" y="158" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">Release 1.0</text><path d="M400,171 H716" stroke="#99610a" stroke-width="1" stroke-opacity="0.35"/><text x="404" y="188" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">A snapshot, its parents, and stated who and when.</text><path d="M388,243 H412 L418,249 H728 V381 H388 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="404" y="269" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">tree</text><text x="712" y="269" font-size="12" text-anchor="end" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">73627d2</text><text x="404" y="291" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">100644 blob 96b6532…  README.md</text><text x="404" y="308" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">040000 tree a94eecf…  docs</text><text x="404" y="325" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">040000 tree 003e373…  src</text><text x="404" y="342" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">040000 tree 7e20153…  tools</text><path d="M400,355 H716" stroke="#2c6e2f" stroke-width="1" stroke-opacity="0.35"/><text x="404" y="372" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">One directory: a mode, hash and name per entry.</text><path d="M8,249 H338 L348,259 V398 H8 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M338,249 V259 H348" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="24" y="269" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">blob</text><text x="332" y="269" font-size="12" text-anchor="end" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">96b6532</text><text x="24" y="291" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve"># Ledgerlite</text><text x="24" y="325" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">A tiny demo project used in the …</text><text x="24" y="359" font-size="12" text-anchor="start" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">Current version: 1.0</text><path d="M20,372 H336" stroke="#1f5fa8" stroke-width="1" stroke-opacity="0.35"/><text x="24" y="389" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">Only the bytes: no name, no mode, no date.</text><path d="M348,52 L388,52" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-object_types-0)"/><text x="368" y="47" font-size="12" text-anchor="middle" fill="#555555" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">object</text><path d="M558,197 L558,249" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-object_types-0)"/><text x="566" y="227" font-size="12" text-anchor="start" fill="#555555" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">tree</text><path d="M388,287 L348,287" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-object_types-0)"/><text x="368" y="282" font-size="12" text-anchor="middle" fill="#555555" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">entry</text></svg></div><figcaption><strong>Figure 1.</strong> One of each object type from the demo repository. Each object refers to the next by its hash: the tag names a commit, the commit names its root tree, and the tree names a blob for each file and a tree for each subdirectory.</figcaption></figure>
+<p>A <strong>blob</strong> is the contents of a file and nothing else. It has no filename, no path, no permissions and no timestamp. <code>git cat-file</code> shows any object&rsquo;s type (<code>-t</code>), size (<code>-s</code>) and content (<code>-p</code>):</p>
+<pre class="term"><code><span class="cmd">$ git cat-file -t 4af79c1</span>
+blob
+<span class="cmd">$ git cat-file -s 4af79c1</span>
+54
+<span class="cmd">$ git cat-file -p 4af79c1</span>
+def total(amounts):
+    return round(sum(amounts), 2)</code></pre>
+<p>A <strong>tree</strong> is a directory: a sorted list of entries, each holding a mode, a name, and the hash of a blob (a file) or of another tree (a subdirectory). Names and permissions live here. The modes you will meet are <code>100644</code> (file), <code>100755</code> (executable file), <code>120000</code> (symlink), <code>040000</code> (subdirectory) and <code>160000</code> (submodule).</p>
+<pre class="term"><code><span class="cmd">$ git cat-file -p 85f2af6</span>
+100644 blob 6903f7a3b2fdc1144034a5cc082224dfef4eb6d4  README.md
+040000 tree 964f13d0f07fae6ae3c604c03db02f31d551b4a3  docs
+040000 tree 52dc7bb71bff532f297dd440194ab13f2bc55c58  src</code></pre>
+<p>Because a blob is only bytes, two files with the same content are one blob, however many places they appear. Renaming a file or making it executable creates no new blob either. Only the tree changes:</p>
+<pre class="term"><code><span class="cmd">$ git ls-tree -r ec7b6b5</span>
+100644 blob 6903f7a3b2fdc1144034a5cc082224dfef4eb6d4  README.md
+100644 blob 1d1849599c93a66f5cab62cdc0232f8214f1f939  docs/handbook.md
+100644 blob b6d66e86ef07a36afd15c9bb0e0796af6efe4690  src/main.py
+100644 blob 4af79c158719bdf44e8c6296c08019724f549d69  src/util.py
+100644 blob 53d199d479a01023ca6f7e09c004fc9f681a17d6  tools/run.sh
+100644 blob 4af79c158719bdf44e8c6296c08019724f549d69  tools/util.py
+<span class="cmd">$ git ls-tree 253a528 tools/</span>
+100755 blob 53d199d479a01023ca6f7e09c004fc9f681a17d6  tools/run.sh
+100644 blob 4af79c158719bdf44e8c6296c08019724f549d69  tools/util.py</code></pre>
+<p><code>src/util.py</code> and <code>tools/util.py</code> are one blob listed twice. After <code>chmod +x</code>, <code>run.sh</code> keeps its blob hash and only its mode differs. (Two details for anyone recomputing tree hashes by hand: Git cannot store an empty directory, and entries are sorted as if directory names ended in <code>/</code>.)</p>
+<p>A <strong>commit</strong> is a short piece of text. It holds the hash of one root tree, the hashes of its parent commits (none for the first commit, usually two for a merge), an author line and a committer line, each with a Unix time and a timezone offset, an optional signature, and the message.</p>
+<pre class="term"><code><span class="cmd">$ git cat-file -p 06ade68</span>
+tree 85f2af666745dfc198f7a5c0f671be0ee64007e8
+parent 727ea5ce7707e09face7bfca4fb2f949dc50edb8
+author Ada Example &lt;ada@example.com&gt; 1709562600 +0000
+committer Ada Example &lt;ada@example.com&gt; 1709562600 +0000
+
+Fix rounding in util.py</code></pre>
+<p>An <strong>annotated tag</strong> is a named pointer to another object, usually a commit, with its own tagger, date, message and optional signature. Branches and lightweight tags are not objects at all. Each is just a name for one hash.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>Know which object answers which question. &ldquo;Is this the same file?&rdquo; is a blob question. &ldquo;Is this the same directory, with the same names and permissions?&rdquo; is a tree question. &ldquo;Is this the same project state with the same history?&rdquo; is a commit question.</p>
+</div>
+</section>
+<section id="snapshots"><h2><span class="num">3</span> Snapshots, not diffs</h2>
+<p>A commit does not store what changed. It points to one root tree, and that tree is a complete snapshot of every file in the project at that moment.</p>
+<p>That sounds wasteful, but nothing is copied. A commit that changes one file gets a new blob for that file and new trees for the directories above it. Everything else is referred to by the same hashes as before. In the demo, the second commit edits only <code>src/util.py</code>:</p>
+<pre class="term"><code><span class="cmd">$ git rev-parse 727ea5c:docs 06ade68:docs</span>
+964f13d0f07fae6ae3c604c03db02f31d551b4a3
+964f13d0f07fae6ae3c604c03db02f31d551b4a3
+<span class="cmd">$ git rev-parse 727ea5c:src 06ade68:src</span>
+3055bb645492e112d43a09a17963ddd2fde411c6
+52dc7bb71bff532f297dd440194ab13f2bc55c58</code></pre>
+<p><code>docs</code> has the same tree hash in both commits, so it is the same stored object. <code>src</code> has a new one.</p>
+<figure id="fig-snapshot_sharing"><div class="figure-scroll"><svg viewBox="0 0 736 528" width="736" height="528" role="img" aria-label="Two commits whose snapshots share every object except the edited file and the trees above it." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>Two commits whose snapshots share every object except the edited file and the trees above it.</title><defs><marker id="ah-snapshot_sharing-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#1b1b1b"/></marker></defs><rect x="276" y="158" width="184" height="312" rx="12" fill="#f7f7f4" stroke="#8c8c88" stroke-width="1.2" stroke-dasharray="6 4"/><text x="368" y="177" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">stored once, used by both</text><rect x="64.5" y="17" width="119.1" height="46" rx="15" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="36" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">Initial project</text><text x="124" y="53" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">727ea5c</text><rect x="522.3" y="17" width="179.4" height="46" rx="15" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="612" y="36" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">Fix rounding in util.py</text><text x="612" y="53" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">06ade68</text><path d="M80.7,99 H104.7 L110.7,105 H167.3 V151 H80.7 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="124" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">root tree</text><text x="124" y="141" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">d44dde8</text><path d="M568.7,99 H592.7 L598.7,105 H655.3 V151 H568.7 Z" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="612" y="124" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">root tree</text><text x="612" y="141" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">85f2af6</text><path d="M312.3,193 H413.7 L423.7,203 V239 H312.3 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M413.7,193 V203 H423.7" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="368" y="212" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">README.md</text><text x="368" y="229" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">6903f7a</text><path d="M329.4,259 H353.4 L359.4,265 H406.6 V311 H329.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="368" y="284" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">docs</text><text x="368" y="301" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">964f13d</text><path d="M323.8,337 H402.2 L412.2,347 V383 H323.8 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M402.2,337 V347 H412.2" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="368" y="356" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">guide.md</text><text x="368" y="373" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">1d18495</text><path d="M327.9,409 H398.1 L408.1,419 V455 H327.9 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M398.1,409 V419 H408.1" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="368" y="428" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">main.py</text><text x="368" y="445" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">b6d66e8</text><path d="M85.4,259 H109.4 L115.4,265 H162.6 V311 H85.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="284" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="124" y="301" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3055bb6</text><path d="M573.4,259 H597.4 L603.4,265 H650.6 V311 H573.4 Z" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="612" y="284" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="612" y="301" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">52dc7bb</text><path d="M85.4,409 H152.6 L162.6,419 V455 H85.4 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M152.6,409 V419 H162.6" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="124" y="428" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">util.py</text><text x="124" y="445" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">2d08a0f</text><path d="M573.4,409 H640.6 L650.6,419 V455 H573.4 Z" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><path d="M640.6,409 V419 H650.6" fill="none" stroke="#c62828" stroke-width="2.4"/><text x="612" y="428" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">util.py</text><text x="612" y="445" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">4af79c1</text><path d="M522.3,40 L183.5,40" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><text x="352.9" y="35" font-size="12" text-anchor="middle" fill="#555555" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">parent</text><path d="M124,63 L124,105" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><text x="132" y="88" font-size="12" text-anchor="start" fill="#555555" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">tree</text><path d="M612,63 L612,105" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><text x="620" y="88" font-size="12" text-anchor="start" fill="#555555" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">tree</text><path d="M124,151 L124,265" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M146,151 L312.3,216" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M135,151 L329.4,288" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M124,311 L124,409" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M138,311 L327.9,432" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M612,151 L612,265" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M590,151 L423.7,216" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M601,151 L406.6,288" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M612,311 L612,409" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M598,311 L408.1,432" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M368,311 L368,337" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-snapshot_sharing-0)"/><path d="M14,482 H722" stroke="#d9d9d4" stroke-width="1"/><rect x="14" y="496" width="26" height="16" rx="8" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="47" y="508" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">commit</text><path d="M113.8,490 H137.8 L143.8,496 H139.8 V512 H113.8 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="146.8" y="508" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">tree (directory)</text><path d="M260.4,496 H276.4 L286.4,506 V512 H260.4 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M276.4,496 V506 H286.4" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="293.4" y="508" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">blob (file contents)</text><rect x="431" y="496" width="26" height="16" rx="6" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="464" y="508" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">new hash</text></svg></div><figcaption><strong>Figure 2.</strong> The first two commits of the demo. The second edits only <code>util.py</code>, so it needs one new blob and new trees for <code>src</code> and the root. Everything else is the same object in both snapshots.</figcaption></figure>
+<p>The diffs you see in <code>git log -p</code> or in a pull request are computed on demand by comparing two snapshots. They are a view of the record, not the record.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>Any commit can be examined on its own as a complete copy of the code at that point. When someone describes &ldquo;the changes in a commit&rdquo;, they are describing a comparison that Git computed. The snapshots on either side are the evidence.</p>
+</div>
+</section>
+<section id="merkle"><h2><span class="num">4</span> The Merkle structure</h2>
+<p>Put the last two sections together. A tree&rsquo;s hash is computed from its entries, and each entry contains the hash of a child. So a tree&rsquo;s hash depends on everything underneath it. This arrangement is called a Merkle tree.</p>
+<p>Change one byte in one file and its blob hash changes. That changes the entry in its directory&rsquo;s tree, so that tree&rsquo;s hash changes, and so on up to the root tree and the commit. Nothing else moves. Sibling files and directories keep their hashes.</p>
+<figure id="fig-merkle_ripple"><div class="figure-scroll"><svg viewBox="0 0 736 414" width="736" height="414" role="img" aria-label="Editing one file changes the hash of that blob and of every object above it, and nothing else." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>Editing one file changes the hash of that blob and of every object above it, and nothing else.</title><defs><marker id="ah-merkle_ripple-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#8c8c88"/></marker><marker id="ah-merkle_ripple-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#c62828"/></marker></defs><rect x="292.8" y="13" width="150.4" height="46" rx="15" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="368" y="32" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">commit</text><text x="368" y="49" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">727ea5c → 06ade68</text><path d="M292.8,95 H316.8 L322.8,101 H443.2 V147 H292.8 Z" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="368" y="120" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">root tree</text><text x="368" y="137" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">d44dde8 → 85f2af6</text><path d="M74.3,193 H175.7 L185.7,203 V239 H74.3 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><path d="M175.7,193 V203 H185.7" fill="none" stroke="#8c8c88" stroke-width="1.2"/><text x="130" y="212" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">README.md</text><text x="130" y="229" font-size="12" text-anchor="middle" fill="#555555" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">6903f7a</text><path d="M301.4,187 H325.4 L331.4,193 H378.6 V239 H301.4 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="340" y="212" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">docs</text><text x="340" y="229" font-size="12" text-anchor="middle" fill="#555555" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">964f13d</text><path d="M448.8,187 H472.8 L478.8,193 H599.2 V239 H448.8 Z" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="524" y="212" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="524" y="229" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3055bb6 → 52dc7bb</text><path d="M295.8,285 H374.2 L384.2,295 V331 H295.8 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><path d="M374.2,285 V295 H384.2" fill="none" stroke="#8c8c88" stroke-width="1.2"/><text x="340" y="304" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">guide.md</text><text x="340" y="321" font-size="12" text-anchor="middle" fill="#555555" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">1d18495</text><path d="M399.9,285 H470.1 L480.1,295 V331 H399.9 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><path d="M470.1,285 V295 H480.1" fill="none" stroke="#8c8c88" stroke-width="1.2"/><text x="440" y="304" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">main.py</text><text x="440" y="321" font-size="12" text-anchor="middle" fill="#555555" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">b6d66e8</text><path d="M504.8,285 H645.2 L655.2,295 V331 H504.8 Z" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><path d="M645.2,285 V295 H655.2" fill="none" stroke="#c62828" stroke-width="2.4"/><text x="580" y="304" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">util.py</text><text x="580" y="321" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">2d08a0f → 4af79c1</text><path d="M338,147 L130,193" fill="none" stroke="#8c8c88" stroke-width="1.4" marker-end="url(#ah-merkle_ripple-0)"/><path d="M368,147 L340,193" fill="none" stroke="#8c8c88" stroke-width="1.4" marker-end="url(#ah-merkle_ripple-0)"/><path d="M340,239 L340,285" fill="none" stroke="#8c8c88" stroke-width="1.4" marker-end="url(#ah-merkle_ripple-0)"/><path d="M494,239 L440,285" fill="none" stroke="#8c8c88" stroke-width="1.4" marker-end="url(#ah-merkle_ripple-0)"/><path d="M368,59 L368,101" fill="none" stroke="#c62828" stroke-width="2.2" marker-end="url(#ah-merkle_ripple-1)"/><text x="378" y="84" font-size="12" text-anchor="start" fill="#c62828" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">lists the new root hash</text><path d="M398,147 L524,193" fill="none" stroke="#c62828" stroke-width="2.2" marker-end="url(#ah-merkle_ripple-1)"/><text x="473" y="170" font-size="12" text-anchor="start" fill="#c62828" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">lists the new src hash</text><path d="M554,239 L580,285" fill="none" stroke="#c62828" stroke-width="2.2" marker-end="url(#ah-merkle_ripple-1)"/><text x="579" y="262" font-size="12" text-anchor="start" fill="#c62828" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">lists the new blob hash</text><text x="580" y="351" font-size="12" text-anchor="middle" fill="#c62828" xml:space="preserve">the one edited file</text><path d="M14,368 H722" stroke="#d9d9d4" stroke-width="1"/><rect x="14" y="382" width="26" height="16" rx="8" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="47" y="394" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">commit</text><path d="M113.8,376 H137.8 L143.8,382 H139.8 V398 H113.8 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="146.8" y="394" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">tree (directory)</text><path d="M260.4,382 H276.4 L286.4,392 V398 H260.4 Z" fill="#e8f1fb" stroke="#1f5fa8" stroke-width="1.5" stroke-linejoin="round"/><path d="M276.4,382 V392 H286.4" fill="none" stroke="#1f5fa8" stroke-width="1.5"/><text x="293.4" y="394" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">blob (file contents)</text><rect x="431" y="382" width="26" height="16" rx="6" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="464" y="394" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">new hash</text><rect x="544.3" y="382" width="26" height="16" rx="6" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="577.3" y="394" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">same hash as before</text></svg></div><figcaption><strong>Figure 3.</strong> The same edit, seen as hashes. Each object contains the hashes of the objects below it, so a new blob hash forces a new <code>src</code> tree, a new root tree and a new commit. Siblings off that path keep their hashes.</figcaption></figure>
+<p>The same thing happens along history. Each commit contains its parents&rsquo; hashes, so a commit&rsquo;s hash depends on its entire ancestry. Merges have two parents, which makes history a graph and not a line (a Merkle DAG).</p>
+<pre class="term"><code><span class="cmd">$ git log --graph --oneline</span>
+* a30b4b9 Release 1.0
+*   410cc9f Merge branch 'feature'
+|\
+| * 3d516dd Add --verbose flag
+* | 909aece Add currency setting
+|/
+* 253a528 Make run.sh executable
+* ec7b6b5 Add tools directory
+* 7058063 Rename guide to handbook
+* 06ade68 Fix rounding in util.py
+* 727ea5c Initial project</code></pre>
+<figure id="fig-commit_dag"><div class="figure-scroll"><svg viewBox="0 0 736 278" width="736" height="278" role="img" aria-label="The demo history as a graph: every commit points back to its parents and down to its own root tree." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>The demo history as a graph: every commit points back to its parents and down to its own root tree.</title><defs><marker id="ah-commit_dag-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#1b1b1b"/></marker><marker id="ah-commit_dag-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#2c6e2f"/></marker></defs><rect x="11.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="44" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">727ea5c</text><rect x="91.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">06ade68</text><rect x="171.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="204" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">7058063</text><rect x="251.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="284" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">ec7b6b5</text><rect x="331.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="364" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">253a528</text><rect x="411.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="444" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3d516dd</text><rect x="491.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="524" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">909aece</text><rect x="571.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="604" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">410cc9f</text><rect x="651.4" y="135.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="684" y="154.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">a30b4b9</text><path d="M91.4,150 L76.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M171.4,150 L156.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M251.4,150 L236.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M331.4,150 L316.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M411.4,104 L384,104 L384,135.5" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M491.4,150 L396.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M571.4,150 L556.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M592,135.5 L592,104 L476.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M651.4,150 L636.6,150" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-commit_dag-0)"/><path d="M11.4,185.5 H35.4 L41.4,191.5 H76.6 V220.5 H11.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="44" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">d44dde8</text><path d="M44,164.5 L44,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M91.4,185.5 H115.4 L121.4,191.5 H156.6 V220.5 H91.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">85f2af6</text><path d="M124,164.5 L124,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M171.4,185.5 H195.4 L201.4,191.5 H236.6 V220.5 H171.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="204" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">68a998b</text><path d="M204,164.5 L204,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M251.4,185.5 H275.4 L281.4,191.5 H316.6 V220.5 H251.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="284" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">500b66b</text><path d="M284,164.5 L284,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M331.4,185.5 H355.4 L361.4,191.5 H396.6 V220.5 H331.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="364" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">35c4e89</text><path d="M364,164.5 L364,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M411.4,27.5 H435.4 L441.4,33.5 H476.6 V62.5 H411.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="444" y="52.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3c9e15a</text><path d="M444,89.5 L444,62.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M491.4,185.5 H515.4 L521.4,191.5 H556.6 V220.5 H491.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="524" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">a6136fc</text><path d="M524,164.5 L524,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M571.4,185.5 H595.4 L601.4,191.5 H636.6 V220.5 H571.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="604" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">af6c9d8</text><path d="M604,164.5 L604,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><path d="M651.4,185.5 H675.4 L681.4,191.5 H716.6 V220.5 H651.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="684" y="210.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">73627d2</text><path d="M684,164.5 L684,191.5" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-commit_dag-1)"/><text x="84" y="128" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">parent</text><text x="52" y="181" font-size="12" text-anchor="start" fill="#2c6e2f" xml:space="preserve">tree</text><text x="400" y="82" font-size="12" text-anchor="end" fill="#555555" xml:space="preserve">branch</text><text x="608" y="120" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">merge: two parents</text><path d="M14,232.5 H722" stroke="#d9d9d4" stroke-width="1"/><rect x="14" y="246.5" width="26" height="16" rx="8" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="47" y="258.5" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">commit</text><path d="M113.8,240.5 H137.8 L143.8,246.5 H139.8 V262.5 H113.8 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="146.8" y="258.5" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">tree (directory)</text></svg></div><figcaption><strong>Figure 4.</strong> The nine demo commits, oldest on the left. Arrows run from each commit to its parent, so every hash depends on everything to its left. Each commit also names one root tree: its full snapshot.</figcaption></figure>
+<p>Three consequences do most of the work in forensic analysis:</p>
+<ol>
+<li><strong>Equal tree hashes mean identical directories</strong>: every name, every mode and every byte, all the way down. There is nothing further to inspect.</li>
+<li><strong>Equal commit hashes mean identical content and identical history</strong>, back to the first commit.</li>
+<li><strong>Any change changes every hash above it</strong>: the trees up to the root, that commit, and every commit descended from it.</li>
+</ol>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>One 40-character comparison can stand in for comparing thousands of files. If two repositories agree on a tree hash, you can state that those directories are byte-for-byte identical without opening a file, and anyone can check the claim independently.</p>
+</div>
+</section>
+<section id="what-a-hash-proves"><h2><span class="num">5</span> What a hash proves, and what it doesn’t</h2>
+<p>A hash proves <strong>identity of content</strong>. For a commit, that content includes the exact ancestry. That is all it proves.</p>
+<p>It does not prove <strong>when</strong> something happened or <strong>who</strong> did it. The author and committer names, emails and dates in a commit are plain text supplied by whoever created it, and Git records whatever it is given. Every name and date in this primer&rsquo;s demo repository was set by a script, and every hash in it is perfectly valid. A rewritten history is just as internally consistent as an original one.</p>
+<p>Two things can anchor a commit to the outside world:</p>
+<ul>
+<li><strong>A signature.</strong> Commits and tags can be signed with a GPG or SSH key. Commits created through GitHub&rsquo;s web interface, such as merges made with the merge button, are typically signed by GitHub&rsquo;s own &ldquo;web-flow&rdquo; key, which shows that GitHub created that commit object.</li>
+<li><strong>An independent record of the hash.</strong> If a commit hash appears in an email, a produced document, a CI log or a public copy with a known date, then that commit and everything it depends on existed by then.</li>
+</ul>
+<p>A signature is computed over the commit&rsquo;s content, and that content includes the tree hash and the parent hashes. So a valid signature on one commit vouches for its whole snapshot and for <strong>every commit reachable from it</strong>.</p>
+<figure id="fig-signature_coverage"><div class="figure-scroll"><svg viewBox="0 0 736 256" width="736" height="256" role="img" aria-label="A signature on one commit covers that commit and every commit reachable from it, but nothing made later." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>A signature on one commit covers that commit and every commit reachable from it, but nothing made later.</title><defs><marker id="ah-signature_coverage-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#1b1b1b"/></marker></defs><rect x="6" y="14" width="724" height="132" rx="12" fill="#eef6ea" stroke="#2c6e2f" stroke-width="1.2" stroke-dasharray="6 4"/><text x="20" y="36" font-size="13" text-anchor="start" fill="#2c6e2f" font-weight="600" xml:space="preserve">vouched for by the signature on a30b4b9</text><rect x="11.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="44" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">727ea5c</text><rect x="91.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">06ade68</text><rect x="171.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="204" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">7058063</text><rect x="251.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="284" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">ec7b6b5</text><rect x="331.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="364" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">253a528</text><rect x="411.4" y="57.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="444" y="76.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3d516dd</text><rect x="491.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="524" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">909aece</text><rect x="571.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="604" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">410cc9f</text><rect x="651.4" y="103.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="684" y="122.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">a30b4b9</text><path d="M91.4,118 L76.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M171.4,118 L156.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M251.4,118 L236.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M331.4,118 L316.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M411.4,72 L384,72 L384,103.5" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M491.4,118 L396.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M571.4,118 L556.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M592,103.5 L592,72 L476.6,72" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><path d="M651.4,118 L636.6,118" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><rect x="655.1" y="73.5" width="57.9" height="20" rx="4" fill="#ffffff" stroke="#2c6e2f" stroke-width="1.2"/><text x="684" y="87.5" font-size="12" text-anchor="middle" fill="#2c6e2f" font-weight="600" xml:space="preserve">signed</text><rect x="651.4" y="169.5" width="65.2" height="29" rx="14.5" fill="#ffffff" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round" stroke-dasharray="5 4"/><text x="684" y="188.5" font-size="12" text-anchor="middle" fill="#555555" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">5d670a1</text><path d="M684,169.5 L684,132.5" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-signature_coverage-0)"/><text x="641.4" y="188" font-size="12" text-anchor="end" fill="#555555" xml:space="preserve">a later, unsigned commit: not covered</text><path d="M14,210.5 H722" stroke="#d9d9d4" stroke-width="1"/><rect x="14" y="224.5" width="26" height="16" rx="8" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="47" y="236.5" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">commit</text><text x="113.8" y="236.5" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">arrows point from a commit to its parent</text></svg></div><figcaption><strong>Figure 5.</strong> The release commit is signed. What was signed includes the hash of its parent, which fixes that commit, which names its own parent, and so on back to the first commit. Altering anything in the shaded area would change the hash of the signed commit and break the signature.</figcaption></figure>
+<pre class="term"><code><span class="cmd">$ git verify-commit a30b4b9</span>
+gpg: Signature made Fri Mar 15 10:00:00 2024 UTC
+gpg:                using EDDSA key D35B7073DE677DC3BA4DC7867E5FDA60395E9A41
+gpg: Good signature from "Ada Example &lt;ada@example.com&gt;" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: D35B 7073 DE67 7DC3 BA4D  C786 7E5F DA60 395E 9A41</code></pre>
+<p>Read that output carefully. &ldquo;Good signature&rdquo; means this key signed exactly this commit. The warning underneath is GPG saying it has no basis for connecting the key to a person. That link has to come from somewhere else, such as a key published on the person&rsquo;s account. The signature&rsquo;s own date also comes from the signer&rsquo;s clock.</p>
+<p>One caution: verifying a signature runs external programs named in Git&rsquo;s configuration, and a repository&rsquo;s own <code>.git/config</code> can point <code>gpg.program</code> at anything. Inspect the configuration of an untrusted repository before running commands inside it (section 14).</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>Be precise about which claim you are making. &ldquo;These files are identical to those&rdquo; is a hash claim and is as strong as the hash function. &ldquo;This was written on 4 March by Ada&rdquo; is a metadata claim and needs corroboration from signatures or outside records.</p>
+</div>
+</section>
+<section id="rewritten-history"><h2><span class="num">6</span> Rewritten history</h2>
+<p>A commit&rsquo;s hash covers its content, its parents and its metadata, so history can never be edited in place. The tools that appear to edit it (<code>commit --amend</code>, <code>rebase</code>, <code>cherry-pick</code>, squash merges, <code>filter-repo</code>, <code>filter-branch</code>) build new commits and move the branch to them. The result is a new, valid history with different hashes.</p>
+<p>To show the effect, the demo repository was cloned and run through <code>git filter-repo --path src/</code>, which rebuilds history as if only the <code>src</code> directory had ever existed. A producing party might do the same to limit a production to the directories in scope.</p>
+<figure id="fig-filtered_history"><div class="figure-scroll"><svg viewBox="0 0 736 433" width="736" height="433" role="img" aria-label="Filtering history to one directory gives every commit a new hash and drops some commits, but the kept directory&#x27;s tree hashes are unchanged." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>Filtering history to one directory gives every commit a new hash and drops some commits, but the kept directory&#x27;s tree hashes are unchanged.</title><defs><marker id="ah-filtered_history-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#1b1b1b"/></marker><marker id="ah-filtered_history-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#2c6e2f"/></marker></defs><text x="12" y="20" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">Original history: 9 commits</text><rect x="11.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="44" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">727ea5c</text><rect x="91.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">06ade68</text><rect x="171.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="204" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">7058063</text><rect x="251.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="284" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">ec7b6b5</text><rect x="331.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="364" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">253a528</text><rect x="411.4" y="43.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="444" y="62.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3d516dd</text><rect x="491.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="524" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">909aece</text><rect x="571.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="604" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">410cc9f</text><rect x="651.4" y="89.5" width="65.2" height="29" rx="14.5" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="684" y="108.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">a30b4b9</text><path d="M91.4,104 L76.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M171.4,104 L156.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M251.4,104 L236.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M331.4,104 L316.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M411.4,58 L384,58 L384,89.5" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M491.4,104 L396.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M571.4,104 L556.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M592,89.5 L592,58 L476.6,58" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M651.4,104 L636.6,104" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><rect x="11.4" y="273.5" width="65.2" height="29" rx="14.5" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="44" y="292.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">4391306</text><rect x="91.4" y="273.5" width="65.2" height="29" rx="14.5" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="124" y="292.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">9718e64</text><rect x="411.4" y="319.5" width="65.2" height="29" rx="14.5" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="444" y="338.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">6a06b56</text><rect x="491.4" y="273.5" width="65.2" height="29" rx="14.5" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="524" y="292.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">69b0a9e</text><rect x="571.4" y="273.5" width="65.2" height="29" rx="14.5" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="604" y="292.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">bbb113c</text><rect x="651.4" y="273.5" width="65.2" height="29" rx="14.5" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="684" y="292.5" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">a8b1208</text><path d="M91.4,288 L76.6,288" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M411.4,334 L144,334 L144,302.5" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M491.4,288 L156.6,288" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M571.4,288 L556.6,288" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M592,302.5 L592,334 L476.6,334" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M651.4,288 L636.6,288" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-filtered_history-0)"/><path d="M11.4,167 H35.4 L41.4,173 H76.6 V219 H11.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="44" y="192" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="44" y="209" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">3055bb6</text><path d="M44,118.5 L44,173" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M44,273.5 L44,219" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><text x="44" y="81.5" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">all files</text><path d="M91.4,167 H115.4 L121.4,173 H156.6 V219 H91.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="124" y="192" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="124" y="209" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">52dc7bb</text><path d="M124,118.5 L124,173" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M124,273.5 L124,219" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><text x="124" y="81.5" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">src</text><path d="M204,118.5 L204,146" fill="none" stroke="#c62828" stroke-width="1.4" stroke-dasharray="5 4"/><text x="204" y="163" font-size="15" text-anchor="middle" fill="#c62828" font-weight="600" xml:space="preserve">✕</text><text x="204" y="182" font-size="12" text-anchor="middle" fill="#c62828" xml:space="preserve">docs</text><path d="M284,118.5 L284,146" fill="none" stroke="#c62828" stroke-width="1.4" stroke-dasharray="5 4"/><text x="284" y="163" font-size="15" text-anchor="middle" fill="#c62828" font-weight="600" xml:space="preserve">✕</text><text x="284" y="182" font-size="12" text-anchor="middle" fill="#c62828" xml:space="preserve">tools</text><path d="M364,118.5 L364,146" fill="none" stroke="#c62828" stroke-width="1.4" stroke-dasharray="5 4"/><text x="364" y="163" font-size="15" text-anchor="middle" fill="#c62828" font-weight="600" xml:space="preserve">✕</text><text x="364" y="182" font-size="12" text-anchor="middle" fill="#c62828" xml:space="preserve">tools</text><path d="M411.4,167 H435.4 L441.4,173 H476.6 V219 H411.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="444" y="192" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="444" y="209" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">51e6743</text><path d="M444,72.5 L444,173" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M444,319.5 L444,219" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><text x="444" y="35.5" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">src</text><path d="M491.4,167 H515.4 L521.4,173 H556.6 V219 H491.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="524" y="192" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="524" y="209" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">01474df</text><path d="M524,118.5 L524,173" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M524,273.5 L524,219" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><text x="524" y="81.5" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">src, docs</text><path d="M571.4,167 H595.4 L601.4,173 H636.6 V219 H571.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="604" y="192" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="604" y="209" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">f761857</text><path d="M604,118.5 L604,173" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M604,273.5 L604,219" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M651.4,167 H675.4 L681.4,173 H716.6 V219 H651.4 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="684" y="192" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">src</text><text x="684" y="209" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">003e373</text><path d="M684,118.5 L684,173" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><path d="M684,273.5 L684,219" fill="none" stroke="#2c6e2f" stroke-width="1.4" marker-end="url(#ah-filtered_history-1)"/><text x="684" y="81.5" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">src, README</text><text x="284" y="208" font-size="12" text-anchor="middle" fill="#c62828" xml:space="preserve">dropped: these touched</text><text x="284" y="224" font-size="12" text-anchor="middle" fill="#c62828" xml:space="preserve">nothing under src</text><text x="12" y="370" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">Filtered to src/: 6 commits, every commit hash new, same src trees</text><path d="M14,387 H722" stroke="#d9d9d4" stroke-width="1"/><rect x="14" y="401" width="26" height="16" rx="8" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="47" y="413" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">commit</text><path d="M113.8,395 H137.8 L143.8,401 H139.8 V417 H113.8 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="146.8" y="413" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">tree (directory)</text><rect x="260.4" y="401" width="26" height="16" rx="6" fill="#fde7e4" stroke="#c62828" stroke-width="2.4" stroke-linejoin="round"/><text x="293.4" y="413" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">new hash</text><text x="373.8" y="413" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">grey and red labels: paths each commit touched</text></svg></div><figcaption><strong>Figure 6.</strong> The demo history before and after <code>git filter-repo --path src/</code>. Each surviving commit has a new hash, yet it and its original both contain the very same <code>src</code> tree. Commits that touched nothing under <code>src</code> have no counterpart.</figcaption></figure>
+<p>The table below pairs the commits of the two repositories by message, author and date, then prints the commit hashes and the <code>src</code> tree hash on each side:</p>
+<pre class="term"><code><span class="cmd">$ ../pair-commits.sh original filtered src</span>
+subject                   original  filtered   original:src  filtered:src
+Initial project           727ea5c   4391306    3055bb6       3055bb6       same
+Fix rounding in util.py   06ade68   9718e64    52dc7bb       52dc7bb       same
+Rename guide to handbook  7058063   -          52dc7bb       -
+Add tools directory       ec7b6b5   -          52dc7bb       -
+Make run.sh executable    253a528   -          52dc7bb       -
+Add currency setting      909aece   69b0a9e    01474df       01474df       same
+Add --verbose flag        3d516dd   6a06b56    51e6743       51e6743       same
+Merge branch 'feature'    410cc9f   bbb113c    f761857       f761857       same
+Release 1.0               a30b4b9   a8b1208    003e373       003e373       same</code></pre>
+<p>Every surviving commit has a new hash. Three commits have no counterpart because they touched only <code>docs</code> or <code>tools</code>. The signature on the release commit is gone, because the commit it signed no longer exists in this history. But the <code>src</code> tree hash at each surviving commit is unchanged, because a tree hash depends only on what is under it.</p>
+<p>Fingerprints of rewriting:</p>
+<ul>
+<li>the same messages, authors and dates under different commit hashes;</li>
+<li>identical trees under different commit hashes (only metadata, parents or a signature changed);</li>
+<li>commits in one copy with no counterpart in the other;</li>
+<li>signatures that are missing or fail where the other copy&rsquo;s verify;</li>
+<li>more than one root commit (<code>git rev-list --max-parents=0 --all</code>), or committer dates bunched at the time of the rewrite.</li>
+</ul>
+<p>The pairing technique generalizes. Compare each pair at three levels: commit hash, then root tree hash, then subtree hashes. That tells you exactly what differs and where. When two copies share the start of a long history, you can binary-search <code>git rev-list --first-parent --reverse</code> for the first commit hash that differs, because once commit hashes diverge they never agree again.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>Different commit hashes do not mean different code, and a rewritten history is not in itself a sign of bad faith. Filtering a production is routine. What matters is being able to show precisely what was kept, what was changed and what was dropped.</p>
+</div>
+</section>
+<section id="comparing-repositories"><h2><span class="num">7</span> Comparing two repositories</h2>
+<p>The usual task: one repository produced in a case, and a second copy from somewhere else, such as an earlier production, an open-source upstream or a copy obtained through another channel. Work from the cheapest check to the most detailed.</p>
+<ol>
+<li><strong>Look for shared commit hashes.</strong> Run <code>git rev-list --all</code> in each and compare the lists. One shared commit means everything up to that commit is identical in both.</li>
+<li><strong>Compare tree hashes for the directories you care about.</strong> <code>git rev-parse &lt;commit&gt;:&lt;path&gt;</code> prints the hash of the directory at that path in that commit.</li>
+<li><strong>Descend only where hashes differ.</strong> <code>git ls-tree &lt;commit&gt; &lt;path&gt;</code> lists one level, and <code>git ls-tree -r</code> lists every file with its blob hash. With both histories fetched into one scratch repository, <code>git diff --stat &lt;a&gt; &lt;b&gt;</code> does the descent for you.</li>
+</ol>
+<pre class="term"><code><span class="cmd">$ git -C original rev-parse v1.0:src</span>
+003e373c17b454025f98e13148cb935808e471e5
+<span class="cmd">$ git -C filtered rev-parse v1.0:src</span>
+003e373c17b454025f98e13148cb935808e471e5
+<span class="cmd">$ git -C compare diff --stat v1.0 filtered/main</span>
+ README.md        | 5 -----
+ docs/handbook.md | 5 -----
+ tools/run.sh     | 2 --
+ tools/util.py    | 2 --
+ 4 files changed, 14 deletions(-)</code></pre>
+<p>The two <code>src</code> directories are identical. The complete snapshots differ only by the files the filter removed.</p>
+<p>Keep one limit in mind. A matching tree hash verifies <strong>that snapshot</strong>. It says nothing about how the directory got there, and the two histories behind it may differ. To verify history, pair the commits and compare at each pair, as in section 6.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>This is how you establish that material from an uncontrolled source is the same as what was produced, or show exactly where it is not, without reading either one line by line.</p>
+</div>
+</section>
+<section id="case-study"><h2><span class="num">8</span> Case study: a production and an unofficial copy</h2>
+<p>This is an anonymized account of a real pattern.</p>
+<p>A party produced a source repository for inspection in a secure review room. Separately, the attorneys received an unofficial copy of the source code through a channel other than the producing party. It was said to be authentic, and more complete than the production made on the record. If it matched the production, the analysis could be done on the unofficial copy with ordinary tools, outside the review room.</p>
+<p>They did not obviously match. The production held only some of the top-level directories, and the unofficial copy held many more. No commit hash appeared in both. That is what section 6 predicts: the production had been rebuilt to contain only those directories, so every one of its commits was new.</p>
+<p>So the analyst compared tree hashes instead: <code>git rev-parse HEAD:&lt;directory&gt;</code> for each produced directory in the review room, and the same command on the unofficial copy. Every one matched.</p>
+<figure id="fig-case_study"><div class="figure-scroll"><svg viewBox="0 0 736 450" width="736" height="450" role="img" aria-label="A produced repository with some directories and an unofficial copy with many more: the commits differ, but the shared directories have equal tree hashes." font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"><title>A produced repository with some directories and an unofficial copy with many more: the commits differ, but the shared directories have equal tree hashes.</title><defs><marker id="ah-case_study-0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#1b1b1b"/></marker><marker id="ah-case_study-1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#8c8c88"/></marker></defs><rect x="532" y="196" width="194" height="196" rx="12" fill="#f7f7f4" stroke="#8c8c88" stroke-width="1.2" stroke-dasharray="6 4"/><text x="16" y="22" font-size="13" text-anchor="start" fill="#1b1b1b" font-weight="600" xml:space="preserve">Produced in the review room</text><text x="720" y="22" font-size="13" text-anchor="end" fill="#1b1b1b" font-weight="600" xml:space="preserve">Unofficial copy</text><rect x="71.1" y="39" width="77.9" height="46" rx="15" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="110" y="58" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">commit</text><text x="110" y="75" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">1111111</text><path d="M66.7,117 H90.7 L96.7,123 H153.3 V169 H66.7 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="110" y="142" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">root tree</text><text x="110" y="159" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">2222222</text><rect x="571.1" y="39" width="77.9" height="46" rx="15" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="610" y="58" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">commit</text><text x="610" y="75" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">9999999</text><path d="M566.7,117 H590.7 L596.7,123 H653.3 V169 H566.7 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="610" y="142" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">root tree</text><text x="610" y="159" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">8888888</text><path d="M110,85 L110,123" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M610,85 L610,123" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M148.9,62 L571.1,62" fill="none" stroke="#8c8c88" stroke-width="1.4" stroke-dasharray="5 4"/><text x="360" y="55" font-size="12" text-anchor="middle" fill="#8c8c88" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">≠  commit hashes differ</text><path d="M153.3,146 L566.7,146" fill="none" stroke="#8c8c88" stroke-width="1.4" stroke-dasharray="5 4"/><text x="360" y="139" font-size="12" text-anchor="middle" fill="#8c8c88" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">≠  root tree hashes differ</text><text x="629" y="215" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">dozens of other directories</text><path d="M546,229.5 H570 L576,235.5 H622 V264.5 H546 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="584" y="254.5" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">billing</text><path d="M638,229.5 H662 L668,235.5 H714 V264.5 H638 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="676" y="254.5" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">web</text><path d="M546,279.5 H570 L576,285.5 H622 V314.5 H546 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="584" y="304.5" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">mobile</text><path d="M638,279.5 H662 L668,285.5 H714 V314.5 H638 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="676" y="304.5" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">infra</text><path d="M546,329.5 H570 L576,335.5 H622 V364.5 H546 Z" fill="#f0f0ee" stroke="#8c8c88" stroke-width="1.2" stroke-linejoin="round"/><text x="584" y="354.5" font-size="13" text-anchor="middle" fill="#555555" font-weight="600" xml:space="preserve">tests</text><text x="676" y="354" font-size="12" text-anchor="middle" fill="#555555" xml:space="preserve">… and more</text><path d="M610,169 L610,196" fill="none" stroke="#8c8c88" stroke-width="1.4" marker-end="url(#ah-case_study-1)"/><path d="M190,211 H214 L220,217 H274 V263 H190 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="232" y="236" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">engine</text><text x="232" y="253" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">aaaa111</text><path d="M386,211 H410 L416,217 H470 V263 H386 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="428" y="236" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">engine</text><text x="428" y="253" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">aaaa111</text><path d="M110,169 L110,240 L190,240" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M566.7,154 L500,154 L500,240 L470,240" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M274,237.5 L386,237.5" stroke="#2c6e2f" stroke-width="1.6"/><path d="M274,242.5 L386,242.5" stroke="#2c6e2f" stroke-width="1.6"/><text x="330" y="231" font-size="12" text-anchor="middle" fill="#2c6e2f" font-weight="600" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">same hash</text><path d="M190,273 H214 L220,279 H274 V325 H190 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="232" y="298" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">parser</text><text x="232" y="315" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">bbbb222</text><path d="M386,273 H410 L416,279 H470 V325 H386 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="428" y="298" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">parser</text><text x="428" y="315" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">bbbb222</text><path d="M110,169 L110,302 L190,302" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M566.7,154 L500,154 L500,302 L470,302" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M274,299.5 L386,299.5" stroke="#2c6e2f" stroke-width="1.6"/><path d="M274,304.5 L386,304.5" stroke="#2c6e2f" stroke-width="1.6"/><text x="330" y="293" font-size="12" text-anchor="middle" fill="#2c6e2f" font-weight="600" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">same hash</text><path d="M190,335 H214 L220,341 H274 V387 H190 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="232" y="360" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">runtime</text><text x="232" y="377" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">cccc333</text><path d="M386,335 H410 L416,341 H470 V387 H386 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="428" y="360" font-size="13" text-anchor="middle" fill="#1b1b1b" font-weight="600" xml:space="preserve">runtime</text><text x="428" y="377" font-size="12" text-anchor="middle" fill="#1b1b1b" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace" xml:space="preserve">cccc333</text><path d="M110,169 L110,364 L190,364" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M566.7,154 L500,154 L500,364 L470,364" fill="none" stroke="#1b1b1b" stroke-width="1.4" marker-end="url(#ah-case_study-0)"/><path d="M274,361.5 L386,361.5" stroke="#2c6e2f" stroke-width="1.6"/><path d="M274,366.5 L386,366.5" stroke="#2c6e2f" stroke-width="1.6"/><text x="330" y="355" font-size="12" text-anchor="middle" fill="#2c6e2f" font-weight="600" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" paint-order="stroke" xml:space="preserve">same hash</text><path d="M14,404 H722" stroke="#d9d9d4" stroke-width="1"/><rect x="14" y="418" width="26" height="16" rx="8" fill="#fdf0d3" stroke="#99610a" stroke-width="1.5" stroke-linejoin="round"/><text x="47" y="430" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">commit</text><path d="M113.8,412 H137.8 L143.8,418 H139.8 V434 H113.8 Z" fill="#e7f4e4" stroke="#2c6e2f" stroke-width="1.5" stroke-linejoin="round"/><text x="146.8" y="430" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">tree (directory)</text><text x="260.4" y="430" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">grey: not in the production</text><text x="443" y="430" font-size="12" text-anchor="start" fill="#555555" xml:space="preserve">names and hashes are placeholders</text></svg></div><figcaption><strong>Figure 7.</strong> The case in one picture. Nothing matches at the commit or root level, because the production was rebuilt to contain only some directories. The tree hashes of those directories match exactly, so their contents are identical.</figcaption></figure>
+<p>That established that the produced directories were byte-for-byte identical in both copies at that snapshot, so findings made on the unofficial copy applied to the produced code. Some commits in the unofficial copy also carried valid GitHub web-flow signatures, which authenticated its history, up to those commits, as it had existed on GitHub.</p>
+<p>The limits were stated just as carefully. The match covered one snapshot, not the history of those directories. And the signatures authenticated the unofficial copy, not the production.</p>
+</section>
+<section id="loose-file"><h2><span class="num">9</span> Checking a loose file against a repository</h2>
+<p>Someone hands you a single file and says it came from the codebase. Hash it, then ask the repository where that blob appears:</p>
+<pre class="term"><code><span class="cmd">$ git hash-object ../loose/util.py</span>
+4af79c158719bdf44e8c6296c08019724f549d69
+<span class="cmd">$ git log --all --oneline --find-object=4af79c1</span>
+ec7b6b5 Add tools directory
+06ade68 Fix rounding in util.py
+<span class="cmd">$ git hash-object ../loose/util-crlf.py</span>
+c967958f88e71e7c8fc4d542d51fb85e013ec70d
+<span class="cmd">$ git log --all --oneline --find-object=c967958f88e71e7c8fc4d542d51fb85e013ec70d</span>
+<span class="none">(no output)</span></code></pre>
+<p><code>--find-object</code> lists the commits that added or removed that blob at some path. Here those are the commit that introduced the fixed <code>util.py</code> and the commit that copied it into <code>tools</code>.</p>
+<p>The second file is the same code saved with Windows line endings. One byte per line differs, so it is a different blob and the search finds nothing. A miss therefore does not prove the content was never in the repository. Line endings (<code>core.autocrlf</code>), a trailing newline, the text encoding or an editor&rsquo;s reformatting are each enough to cause one. After a miss, normalize the file and try again, or fall back to comparing text.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>An exact match is conclusive and takes seconds. A non-match tells you only that the bytes differ. The reason still has to be found.</p>
+</div>
+</section>
+<section id="renames"><h2><span class="num">10</span> Renames, moves and copies</h2>
+<p>Git does not record renames, moves or copies. A commit holds a snapshot, and when you ask for a diff, Git guesses: if a file disappears from one path and the same or similar content appears at another, Git reports a rename.</p>
+<pre class="term"><code><span class="cmd">$ git diff --name-status 06ade68 7058063</span>
+R100  docs/guide.md  docs/handbook.md
+<span class="cmd">$ git diff --name-status --no-renames 06ade68 7058063</span>
+D  docs/guide.md
+A  docs/handbook.md
+<span class="cmd">$ git show --name-status --format= --find-copies-harder ec7b6b5</span>
+A  tools/run.sh
+C100  src/util.py  tools/util.py</code></pre>
+<p>The same two snapshots read as &ldquo;renamed&rdquo; or as &ldquo;deleted and added&rdquo;, depending on a flag. <code>R100</code> and <code>C100</code> mean 100% similar, which is to say the blob hashes are equal. Below 100%, Git compares content against a similarity threshold (50% by default; <code>-M90%</code> raises it to 90%). Copies are found only if you ask (<code>-C</code>, <code>--find-copies-harder</code>). <code>git log --follow</code> uses the same guesswork to trace one file back through renames.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>&ldquo;This file was moved from there&rdquo;, &ldquo;copied from there&rdquo; and &ldquo;rewritten from scratch&rdquo; are inferences, not facts stored in the repository. Exact-hash matches are solid. For anything less, report the options and thresholds you used, because different settings can tell a different story.</p>
+</div>
+</section>
+<section id="timestamps"><h2><span class="num">11</span> Timestamps in depth</h2>
+<p>Each commit carries two dates. The <strong>author date</strong> is when the change was first written. The <strong>committer date</strong> is when this particular commit object was created. They start out equal and drift apart when a commit is rebased, cherry-picked or amended, because the author date is carried over and the committer date is reset.</p>
+<pre class="term"><code><span class="cmd">$ git log --date=iso-strict --format='%h  %ad  %cd  %an'</span>
+a30b4b9  2024-03-15T10:00:00+00:00  2024-03-15T10:00:00+00:00  Ada Example
+410cc9f  2024-03-08T09:30:00+00:00  2024-03-08T09:30:00+00:00  Ada Example
+3d516dd  2024-03-07T10:20:00+00:00  2024-03-08T09:05:00+00:00  Ada Example
+909aece  2024-03-07T15:45:00+05:30  2024-03-07T15:45:00+05:30  Raj Sample
+253a528  2024-03-06T16:20:00+05:30  2024-03-06T16:20:00+05:30  Raj Sample
+ec7b6b5  2024-03-06T16:05:00+05:30  2024-03-06T16:05:00+05:30  Raj Sample
+7058063  2024-03-05T11:15:00+05:30  2024-03-05T11:15:00+05:30  Raj Sample
+06ade68  2024-03-04T14:30:00+00:00  2024-03-04T14:30:00+00:00  Ada Example
+727ea5c  2024-03-04T09:00:00+00:00  2024-03-04T09:00:00+00:00  Ada Example</code></pre>
+<p>Commit <code>3d516dd</code> was authored on the 7th and committed on the 8th, which is what a rebase before merging looks like. The timezone offsets (<code>+00:00</code>, <code>+05:30</code>) come from each machine&rsquo;s settings. They are a weak hint about where someone was working, and trivially changed.</p>
+<p>Signals that deserve a closer look, none conclusive alone:</p>
+<ul>
+<li>a committer date earlier than a parent&rsquo;s;</li>
+<li>many commits with identical or tightly bunched committer dates, which suggests a bulk rewrite;</li>
+<li>author and committer dates far apart;</li>
+<li>offsets that do not fit the supposed author.</li>
+</ul>
+<p>What actually constrains time comes from outside the commit: signatures made with a key that existed or was valid only in a certain period, server-side records such as GitHub push events and pull-request timelines, CI logs, and any dated document that quotes a hash.</p>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>Treat commit dates as statements by the author. They are useful for building a timeline and open to challenge. Tie the points that matter to something the author did not control.</p>
+</div>
+</section>
+<section id="recovery"><h2><span class="num">12</span> Recovering deleted or unreachable material</h2>
+<p>Deleting a file in a commit removes it from later snapshots. Earlier commits still contain it. Even discarding a commit removes only the <em>reference</em> to it: the objects stay in the repository until garbage collection prunes them, usually weeks or months later.</p>
+<p>In the demo, a commit containing a notes file was made and then immediately thrown away with <code>git reset --hard</code>:</p>
+<pre class="term"><code><span class="cmd">$ git fsck --unreachable --no-reflogs</span>
+unreachable tree d45d0e8966d149712f2207907df5bfebbedef231
+unreachable blob dac272dee92e73d1be1516ff5e0adb1f37bb9e4d
+unreachable commit 5d670a1b19e61696903517b3cfd630d5cbb1579b
+unreachable tree f01054a6a2d802670f9d7748e1dc3a7d2d79ea74
+<span class="cmd">$ git reflog -2</span>
+a30b4b9 HEAD@{0}: reset: moving to HEAD~1
+5d670a1 HEAD@{1}: commit: WIP debug notes
+<span class="cmd">$ git cat-file -p dac272d</span>
+db password: hunter2  (remove before committing!)
+<span class="cmd">$ git -C ../fresh cat-file -t dac272d</span>
+fatal: Not a valid object name dac272d</code></pre>
+<p>No branch contains that file, yet the blob is still there and readable. The reflog, a local diary of where each branch has pointed, also remembers the discarded commit. Other places to look are <code>git stash list</code>, <code>git notes</code>, and refs outside <code>refs/heads</code>, which <code>git for-each-ref</code> lists (a mirror of a GitHub repository can include <code>refs/pull/*</code>).</p>
+<p>The last command shows the catch: a fresh clone of the same repository does not have the object. What survives depends on how the copy was made.</p>
+<table>
+<thead>
+<tr>
+<th>How it was copied</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Raw copy of the <code>.git</code> directory</td>
+<td>Everything: unreachable objects, reflogs, stashes, config, hooks</td>
+</tr>
+<tr>
+<td><code>git clone</code></td>
+<td>Objects reachable from branches and tags; no reflogs or stashes. (A clone from a local path can carry unreachable objects too)</td>
+</tr>
+<tr>
+<td>Shallow clone (<code>--depth</code>)</td>
+<td>Recent commits only; earlier history is cut off</td>
+</tr>
+<tr>
+<td><code>git bundle</code></td>
+<td>Only the refs and range its creator chose</td>
+</tr>
+<tr>
+<td>Export and re-import, or filtering</td>
+<td>New hashes throughout (section 6)</td>
+</tr>
+</tbody>
+</table>
+<div class="callout why">
+<p class="callout-title">Why this matters forensically</p>
+<p>Ask how a repository was collected before drawing conclusions from what is absent. When you are the one requesting it, a forensic copy of the whole <code>.git</code> directory preserves far more than a clone does.</p>
+</div>
+</section>
+<section id="brief-notes"><h2><span class="num">13</span> Brief notes</h2>
+<p><strong>Submodules.</strong> A tree entry with mode <code>160000</code> holds the hash of a commit in a <em>different</em> repository. The parent repository pins exactly which version was used, but the code itself is not there. You need the other repository too.</p>
+<p><strong>Git LFS.</strong> Large files handled by LFS are replaced in the repository by small text pointers. Each pointer holds a SHA-256 of the real content, which is stored on a separate server. The blob hash covers the pointer, so matching tree hashes prove matching pointers. Verify the real files against the SHA-256 inside each pointer.</p>
+<p><strong>SHA-256 repositories.</strong> Git can create repositories that use SHA-256 throughout. Hashes are 64 characters, and the same content has unrelated hashes in the two formats, so compare like with like. Everything else in this primer applies unchanged.</p>
+</section>
+<section id="safe-handling"><h2><span class="num">14</span> Safe handling of evidence repositories</h2>
+<p>A repository is not inert data. Its configuration can make ordinary Git commands run programs, and some everyday commands rewrite or delete what is stored.</p>
+<div class="callout box">
+<p class="callout-title">Before you run anything</p>
+<ul>
+<li><strong>Work on a copy.</strong> Hash the original first, for example a checksum of an archive of the whole directory, for chain of custody.</li>
+<li><strong>Read <code>.git/config</code> and <code>.git/hooks/</code> in a text viewer.</strong> Settings such as <code>core.fsmonitor</code>, <code>core.pager</code>, <code>core.sshCommand</code>, <code>gpg.program</code>, <code>diff.external</code> and aliases can make routine commands execute arbitrary programs.</li>
+<li><strong>Prefer read-only commands</strong>: <code>cat-file</code>, <code>ls-tree</code>, <code>rev-parse</code>, <code>rev-list</code>, <code>log</code>, <code>diff</code>, <code>fsck</code>. Avoid <code>checkout</code>, <code>pull</code>, <code>gc</code>, <code>repack</code> and <code>prune</code> on evidence. <code>gc</code> can destroy unreachable objects.</li>
+<li><strong>Set <code>GIT_OPTIONAL_LOCKS=0</code></strong> so that commands like <code>status</code> do not write to the repository.</li>
+<li><strong>Record what you did</strong>: the Git version (<code>git --version</code>), the exact commands, and their output.</li>
+</ul>
+</div>
+</section>
+<section id="cheat-sheet" class="cheatsheet"><h2>Cheat sheet</h2>
+<p class="sheet-note screen-only"><a href="cheat-sheet.html">Open the printable one-page version</a> (<a href="cheat-sheet.pdf">PDF</a>)</p>
+<h3>Core ideas</h3>
+<ol>
+<li>A blob is just bytes. Same bytes, same hash, anywhere.</li>
+<li>Names and permissions live in trees, not in files.</li>
+<li>Same tree hash: identical directory, all the way down.</li>
+<li>Same commit hash: identical snapshot <em>and</em> identical history.</li>
+<li>A valid signature vouches for its commit and every ancestor.</li>
+<li>Hashes prove identity. They do not prove time or authorship.</li>
+<li>Rewriting changes commit hashes. Untouched directories keep their tree hashes.</li>
+<li>Git infers renames and copies. It does not record them.</li>
+<li>Deleted rarely means gone, but it depends on how the copy was made.</li>
+</ol>
+<h3>Reading the commands</h3>
+<p>Angle brackets mark a value you supply. Type the value, not the brackets.</p>
+<table>
+<thead>
+<tr>
+<th>Notation</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;commit&gt;</code></td>
+<td>Any name for a commit: a full or shortened hash (<code>a30b4b9</code>), a branch (<code>main</code>), a tag (<code>v1.0</code>), or <code>HEAD</code>, the commit checked out now</td>
+</tr>
+<tr>
+<td><code>&lt;path&gt;</code></td>
+<td>A file or directory, written from the top of the repository: <code>src</code> or <code>src/util.py</code>. <code>&lt;commit&gt;:&lt;path&gt;</code> names what was at that path in that commit</td>
+</tr>
+<tr>
+<td><code>^{tree}</code></td>
+<td>Typed exactly as shown, braces included. After a commit or tag it means &ldquo;the root tree this points to&rdquo;, as in <code>v1.0^{tree}</code>. In Windows shells, put the whole name in double quotes</td>
+</tr>
+<tr>
+<td><code>&lt;obj&gt;</code>, <code>&lt;blob&gt;</code>, <code>&lt;a&gt;</code>, <code>&lt;b&gt;</code></td>
+<td>The hash of an object, or any other name for it. <code>&lt;a&gt;</code> and <code>&lt;b&gt;</code> can be two commits or two trees</td>
+</tr>
+</tbody>
+</table>
+<h3>Inspect objects</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git cat-file -t &lt;obj&gt;</code> (also <code>-s</code>, <code>-p</code>)</td>
+<td>Type, size or content of any object</td>
+</tr>
+<tr>
+<td><code>git ls-tree &lt;commit&gt; &lt;path&gt;</code></td>
+<td>A directory&rsquo;s entries: mode, type, hash, name. <code>-r</code> lists every file</td>
+</tr>
+<tr>
+<td><code>git rev-parse &lt;commit&gt;:&lt;path&gt;</code></td>
+<td>Hash of the file or directory at that path</td>
+</tr>
+<tr>
+<td><code>git rev-parse &lt;commit&gt;^{tree}</code></td>
+<td>Hash of the commit&rsquo;s root tree</td>
+</tr>
+<tr>
+<td><code>git hash-object &lt;file&gt;</code></td>
+<td>Blob hash of any file on disk</td>
+</tr>
+</tbody>
+</table>
+<h3>Walk history</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git rev-list --all</code></td>
+<td>Every reachable commit hash</td>
+</tr>
+<tr>
+<td><code>git rev-list --first-parent --reverse &lt;branch&gt;</code></td>
+<td>The main line, oldest first</td>
+</tr>
+<tr>
+<td><code>git rev-list --max-parents=0 --all</code></td>
+<td>Root commits (more than one is worth a look)</td>
+</tr>
+<tr>
+<td><code>git log --date=iso-strict --format='%H %ad %cd %an'</code></td>
+<td>Author date and committer date side by side</td>
+</tr>
+<tr>
+<td><code>git log --follow -- &lt;file&gt;</code></td>
+<td>One file&rsquo;s history through inferred renames</td>
+</tr>
+<tr>
+<td><code>git log --all --find-object=&lt;blob&gt;</code></td>
+<td>Commits that added or removed a blob</td>
+</tr>
+</tbody>
+</table>
+<h3>Compare</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git diff --stat &lt;a&gt; &lt;b&gt;</code></td>
+<td>Files that differ between two commits or trees</td>
+</tr>
+<tr>
+<td><code>git diff --name-status -M -C &lt;a&gt; &lt;b&gt;</code></td>
+<td>The same, with inferred renames and copies and their similarity</td>
+</tr>
+<tr>
+<td><code>git diff --name-status --no-renames &lt;a&gt; &lt;b&gt;</code></td>
+<td>The same, with inference turned off</td>
+</tr>
+</tbody>
+</table>
+<h3>Signatures</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git log --show-signature</code></td>
+<td>Signature check for each commit in the log</td>
+</tr>
+<tr>
+<td><code>git verify-commit &lt;commit&gt;</code>, <code>git verify-tag &lt;tag&gt;</code></td>
+<td>Check one signature</td>
+</tr>
+</tbody>
+</table>
+<h3>Recovery</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git fsck --unreachable --no-reflogs</code></td>
+<td>Objects that no branch or tag reaches</td>
+</tr>
+<tr>
+<td><code>git reflog</code></td>
+<td>Where <code>HEAD</code> has pointed (local copies only)</td>
+</tr>
+<tr>
+<td><code>git for-each-ref</code></td>
+<td>Every ref, including ones outside branches and tags</td>
+</tr>
+<tr>
+<td><code>git count-objects -v</code></td>
+<td>Loose and packed object counts</td>
+</tr>
+<tr>
+<td><code>git bundle list-heads &lt;file&gt;</code></td>
+<td>The refs inside a bundle</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Before you start:</strong> work on a copy, read <code>.git/config</code> and the hooks, and set <code>GIT_OPTIONAL_LOCKS=0</code>.</p>
+</section>
+</main>
+</body>
+</html>

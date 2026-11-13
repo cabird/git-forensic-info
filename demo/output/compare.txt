@@ -1,0 +1,10 @@
+$ git -C original rev-parse v1.0:src
+003e373c17b454025f98e13148cb935808e471e5
+$ git -C filtered rev-parse v1.0:src
+003e373c17b454025f98e13148cb935808e471e5
+$ git -C compare diff --stat v1.0 filtered/main
+ README.md        | 5 -----
+ docs/handbook.md | 5 -----
+ tools/run.sh     | 2 --
+ tools/util.py    | 2 --
+ 4 files changed, 14 deletions(-)

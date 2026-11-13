@@ -1,0 +1,4 @@
+$ git cat-file -p 85f2af6
+100644 blob 6903f7a3b2fdc1144034a5cc082224dfef4eb6d4	README.md
+040000 tree 964f13d0f07fae6ae3c604c03db02f31d551b4a3	docs
+040000 tree 52dc7bb71bff532f297dd440194ab13f2bc55c58	src

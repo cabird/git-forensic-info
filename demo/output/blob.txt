@@ -1,0 +1,7 @@
+$ git cat-file -t 4af79c1
+blob
+$ git cat-file -s 4af79c1
+54
+$ git cat-file -p 4af79c1
+def total(amounts):
+    return round(sum(amounts), 2)

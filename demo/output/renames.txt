@@ -1,0 +1,8 @@
+$ git diff --name-status 06ade68 7058063
+R100	docs/guide.md	docs/handbook.md
+$ git diff --name-status --no-renames 06ade68 7058063
+D	docs/guide.md
+A	docs/handbook.md
+$ git show --name-status --format= --find-copies-harder ec7b6b5
+A	tools/run.sh
+C100	src/util.py	tools/util.py

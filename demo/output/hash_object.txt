@@ -1,0 +1,4 @@
+$ git hash-object src/util.py
+4af79c158719bdf44e8c6296c08019724f549d69
+$ (printf 'blob %d\0' "$(wc -c < src/util.py)"; cat src/util.py) | sha1sum
+4af79c158719bdf44e8c6296c08019724f549d69  -

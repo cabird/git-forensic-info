@@ -1,0 +1,7 @@
+$ git cat-file -p v1.0
+object a30b4b91b16f2094d52a58d3355d0f1b28e10070
+type commit
+tag v1.0
+tagger Ada Example <ada@example.com> 1710497100 +0000
+
+Version 1.0

@@ -1,0 +1,13 @@
+/* Extra rules for the standalone dist/cheat-sheet.html only; build.py inlines
+   this after style.css. With these page margins the sheet fits on a single
+   A4 or Letter page. */
+body.sheet { padding-top: 1.75rem; }
+body.sheet section { margin-top: 0; padding-top: 0; border-top: 0; }
+body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
+
+@media print {
+  @page { margin: 10mm 12mm 12mm; }
+  body.sheet h1 { font-size: 15pt; margin-bottom: 0.1rem; }
+  body.sheet .cheatsheet { break-before: auto; }
+  body.sheet .cheatsheet > p.sheet-note { font-size: 7.5pt; margin: 0.35rem 0 0; }
+}
