@@ -4,11 +4,11 @@ Most of us picture Git as a chain of diffs. It isn't one. Underneath, Git is a k
 
 Two things follow. The same content always gets the same key, on any machine, in any repository. And content cannot change without its key changing, so a key names exactly one piece of content.
 
-The hash is SHA-1, written as 40 hex characters and usually shortened to the first seven or so. Git uses a hardened SHA-1 that detects the known collision attacks, and newer repositories can use SHA-256 instead (64 characters, same ideas).
+The hash is SHA-1, written as 40 hex characters and usually shortened to the first seven or so. Use the full hash in anything formal: a short one can be ambiguous, and a different object matching seven characters can be manufactured in minutes. Standard builds of Git use a hardened SHA-1 that detects the known collision attacks, and newer repositories can use SHA-256 instead (64 characters, same ideas).
 
 {{output:hash_object}}
 
-`git hash-object` works on any file, inside a repository or not. The second command shows there is no magic in it: a file's key is the SHA-1 of a short header (the word `blob`, the size in bytes, a zero byte) followed by the file's contents.
+`git hash-object` works on any file, inside a repository or not. The second command shows there is no magic in it: a file's key is the SHA-1 of a short header (the word `blob`, a space, the size in bytes, a zero byte) followed by the file's contents. One caution: depending on the machine's settings, `hash-object` may convert line endings before hashing. Add `--no-filters` to hash the bytes exactly as they are.
 
 ::: why
 A Git hash is a fingerprint you can compute yourself from the material in front of you. You do not have to trust the repository, the tool, or whoever handed it over. If the bytes hash to the value, they are the bytes.

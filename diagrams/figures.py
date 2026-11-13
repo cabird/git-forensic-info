@@ -154,7 +154,7 @@ def commit_dag(H):
     c.text(b["merge"].cx + 4, y0 - 30, "merge: two parents", size=12, fill=MUTED, anchor="start")
     c.legend(kinds=("commit", "tree"))
     return c.render(), ("The nine demo commits, oldest on the left. Arrows run from each commit to its "
-                        "parent, so every hash depends on everything to its left. Each commit also "
+                        "parents, so a commit\u2019s hash depends on every commit its arrows lead back to. Each commit also "
                         "names one root tree: its full snapshot.")
 
 

@@ -126,5 +126,5 @@ th { font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; colo
   .cheatsheet td { padding: 0.12rem 0.8rem 0.12rem 0; }
   .cheatsheet td:first-child { width: 50%; }
   .cheatsheet p + table td:first-child { width: 22%; }
-  .cheatsheet h3 { margin: 0.55rem 0 0.15rem; font-size: 7.8pt; }
+  .cheatsheet h3 { margin: 0.42rem 0 0.12rem; font-size: 7.8pt; }
 }

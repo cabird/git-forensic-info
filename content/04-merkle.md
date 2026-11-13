@@ -6,7 +6,7 @@ Change one byte in one file and its blob hash changes. That changes the entry in
 
 {{diagram:merkle_ripple}}
 
-The same thing happens along history. Each commit contains its parents' hashes, so a commit's hash depends on its entire ancestry. Merges have two parents, which makes history a graph and not a line (a Merkle DAG).
+The same thing happens along history. Each commit contains its parents' hashes, so a commit's hash depends on its entire ancestry. Merges have two or more parents, which makes history a graph and not a line (a Merkle DAG).
 
 {{output:graph}}
 
@@ -17,6 +17,8 @@ Three consequences do most of the work in forensic analysis:
 1. **Equal tree hashes mean identical directories**: every name, every mode and every byte, all the way down. There is nothing further to inspect.
 2. **Equal commit hashes mean identical content and identical history**, back to the first commit.
 3. **Any change changes every hash above it**: the trees up to the root, that commit, and every commit descended from it.
+
+All three assume an intact repository that is not using Git's object-replacement features. `git rev-parse` reports the hash a parent object records; it does not re-hash the content. Section 14 lists the checks to run first.
 
 ::: why
 One 40-character comparison can stand in for comparing thousands of files. If two repositories agree on a tree hash, you can state that those directories are byte-for-byte identical without opening a file, and anyone can check the claim independently.

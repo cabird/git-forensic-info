@@ -10,6 +10,6 @@ So the analyst compared tree hashes instead: `git rev-parse HEAD:<directory>` fo
 
 {{diagram:case_study}}
 
-That established that the produced directories were byte-for-byte identical in both copies at that snapshot, so findings made on the unofficial copy applied to the produced code. Some commits in the unofficial copy also carried valid GitHub web-flow signatures, which authenticated its history, up to those commits, as it had existed on GitHub.
+That established that the produced directories were byte-for-byte identical in both copies at that snapshot, so findings about those directories in the unofficial copy applied equally to the produced code. Some commits in the unofficial copy also carried valid GitHub web-flow signatures, which authenticated its history, up to those commits, as it had existed on GitHub.
 
 The limits were stated just as carefully. The match covered one snapshot, not the history of those directories. And the signatures authenticated the unofficial copy, not the production.

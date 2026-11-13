@@ -260,7 +260,7 @@ EOF
 
 cap names_modes "$ORIG" <<EOF
 git ls-tree -r $(s tools)
-git ls-tree $(s chmod) tools/
+git ls-tree $(s chmod):tools
 EOF
 
 cap sharing "$ORIG" <<EOF
@@ -287,9 +287,9 @@ git -C compare diff --stat v1.0 filtered/main
 EOF
 
 cap loose "$ORIG" <<EOF
-git hash-object ../loose/util.py
+git hash-object --no-filters ../loose/util.py
 git log --all --oneline --find-object=$(s blob.util)
-git hash-object ../loose/util-crlf.py
+git hash-object --no-filters ../loose/util-crlf.py
 git log --all --oneline --find-object=${H[blob.util.crlf]}
 EOF
 

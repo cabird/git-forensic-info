@@ -2,9 +2,9 @@
 
 The usual task: one repository produced in a case, and a second copy from somewhere else, such as an earlier production, an open-source upstream or a copy obtained through another channel. Work from the cheapest check to the most detailed.
 
-1. **Look for shared commit hashes.** Run `git rev-list --all` in each and compare the lists. One shared commit means everything up to that commit is identical in both.
+1. **Look for shared commit hashes.** Run `git rev-list --all` in each and compare the lists. One shared commit means that commit and all of its ancestors are identical in both.
 2. **Compare tree hashes for the directories you care about.** `git rev-parse <commit>:<path>` prints the hash of the directory at that path in that commit.
-3. **Descend only where hashes differ.** `git ls-tree <commit> <path>` lists one level, and `git ls-tree -r` lists every file with its blob hash. With both histories fetched into one scratch repository, `git diff --stat <a> <b>` does the descent for you.
+3. **Descend only where hashes differ.** `git ls-tree <commit>:<path>` lists one level, and adding `-r` lists every file below it with its blob hash. With both histories fetched into one scratch repository, `git diff --stat <a> <b>` does the descent for you.
 
 {{output:compare}}
 

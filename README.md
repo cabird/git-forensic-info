@@ -3,7 +3,7 @@
 A short primer on how Git stores code and history, what its hashes prove, and
 how to use that in forensic work.
 
-- **[Read the primer](https://cabird.github.io/git-forensic-info/)** · [PDF](https://cabird.github.io/git-forensic-info/dist/primer.pdf) (19 pages, Letter)
+- **[Read the primer](https://cabird.github.io/git-forensic-info/)** · [PDF](https://cabird.github.io/git-forensic-info/dist/primer.pdf) (Letter)
 - **[Printable cheat sheet](https://cabird.github.io/git-forensic-info/dist/cheat-sheet.html)** · [PDF](https://cabird.github.io/git-forensic-info/dist/cheat-sheet.pdf) (one page)
 
 The web pages are single self-contained HTML files in [`dist/`](dist/), with no

@@ -3,12 +3,12 @@
 ### Core ideas
 
 1. A blob is just bytes. Same bytes, same hash, anywhere.
-2. Names and permissions live in trees, not in files.
+2. Names and file modes live in trees, not in files.
 3. Same tree hash: identical directory, all the way down.
 4. Same commit hash: identical snapshot *and* identical history.
-5. A valid signature vouches for its commit and every ancestor.
+5. A valid signature fixes the content of its commit and every ancestor.
 6. Hashes prove identity. They do not prove time or authorship.
-7. Rewriting changes commit hashes. Untouched directories keep their tree hashes.
+7. Rewritten commits get new hashes. Untouched directories keep their tree hashes.
 8. Git infers renames and copies. It does not record them.
 9. Deleted rarely means gone, but it depends on how the copy was made.
 
@@ -28,10 +28,10 @@ Angle brackets mark a value you supply. Type the value, not the brackets.
 | Command | What it tells you |
 |---|---|
 | `git cat-file -t <obj>` (also `-s`, `-p`) | Type, size or content of any object |
-| `git ls-tree <commit> <path>` | A directory's entries: mode, type, hash, name. `-r` lists every file |
+| `git ls-tree <commit>:<path>` | A directory's entries: mode, type, hash, name. `-r` lists every file |
 | `git rev-parse <commit>:<path>` | Hash of the file or directory at that path |
 | `git rev-parse <commit>^{tree}` | Hash of the commit's root tree |
-| `git hash-object <file>` | Blob hash of any file on disk |
+| `git hash-object --no-filters <file>` | Blob hash of a file's exact bytes |
 
 ### Walk history
 
@@ -42,14 +42,14 @@ Angle brackets mark a value you supply. Type the value, not the brackets.
 | `git rev-list --max-parents=0 --all` | Root commits (more than one is worth a look) |
 | `git log --date=iso-strict --format='%H %ad %cd %an'` | Author date and committer date side by side |
 | `git log --follow -- <file>` | One file's history through inferred renames |
-| `git log --all --find-object=<blob>` | Commits that added or removed a blob |
+| `git log --all -m --find-object=<blob>` | Commits that added or removed a blob (`-m` includes merges) |
 
 ### Compare
 
 | Command | What it tells you |
 |---|---|
 | `git diff --stat <a> <b>` | Files that differ between two commits or trees |
-| `git diff --name-status -M -C <a> <b>` | The same, with inferred renames and copies and their similarity |
+| `git diff --name-status -M --find-copies-harder <a> <b>` | The same, with inferred renames and copies |
 | `git diff --name-status --no-renames <a> <b>` | The same, with inference turned off |
 
 ### Signatures
@@ -63,10 +63,10 @@ Angle brackets mark a value you supply. Type the value, not the brackets.
 
 | Command | What it tells you |
 |---|---|
-| `git fsck --unreachable --no-reflogs` | Objects that no branch or tag reaches |
+| `git fsck --unreachable --no-reflogs` | Objects that no ref or the index reaches |
 | `git reflog` | Where `HEAD` has pointed (local copies only) |
 | `git for-each-ref` | Every ref, including ones outside branches and tags |
 | `git count-objects -v` | Loose and packed object counts |
 | `git bundle list-heads <file>` | The refs inside a bundle |
 
-**Before you start:** work on a copy, read `.git/config` and the hooks, and set `GIT_OPTIONAL_LOCKS=0`.
+**First:** work on a copy, read `.git/config` and hooks, run `git fsck` and `git replace -l`, set `GIT_OPTIONAL_LOCKS=0`.

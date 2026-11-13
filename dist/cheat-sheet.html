@@ -133,7 +133,7 @@ th { font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase; colo
   .cheatsheet td { padding: 0.12rem 0.8rem 0.12rem 0; }
   .cheatsheet td:first-child { width: 50%; }
   .cheatsheet p + table td:first-child { width: 22%; }
-  .cheatsheet h3 { margin: 0.55rem 0 0.15rem; font-size: 7.8pt; }
+  .cheatsheet h3 { margin: 0.42rem 0 0.12rem; font-size: 7.8pt; }
 }
 /* Extra rules for the standalone dist/cheat-sheet.html only; build.py inlines
    this after style.css. With these page margins the sheet fits on a single
@@ -159,12 +159,12 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 <h3>Core ideas</h3>
 <ol>
 <li>A blob is just bytes. Same bytes, same hash, anywhere.</li>
-<li>Names and permissions live in trees, not in files.</li>
+<li>Names and file modes live in trees, not in files.</li>
 <li>Same tree hash: identical directory, all the way down.</li>
 <li>Same commit hash: identical snapshot <em>and</em> identical history.</li>
-<li>A valid signature vouches for its commit and every ancestor.</li>
+<li>A valid signature fixes the content of its commit and every ancestor.</li>
 <li>Hashes prove identity. They do not prove time or authorship.</li>
-<li>Rewriting changes commit hashes. Untouched directories keep their tree hashes.</li>
+<li>Rewritten commits get new hashes. Untouched directories keep their tree hashes.</li>
 <li>Git infers renames and copies. It does not record them.</li>
 <li>Deleted rarely means gone, but it depends on how the copy was made.</li>
 </ol>
@@ -210,7 +210,7 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 <td>Type, size or content of any object</td>
 </tr>
 <tr>
-<td><code>git ls-tree &lt;commit&gt; &lt;path&gt;</code></td>
+<td><code>git ls-tree &lt;commit&gt;:&lt;path&gt;</code></td>
 <td>A directory&rsquo;s entries: mode, type, hash, name. <code>-r</code> lists every file</td>
 </tr>
 <tr>
@@ -222,8 +222,8 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 <td>Hash of the commit&rsquo;s root tree</td>
 </tr>
 <tr>
-<td><code>git hash-object &lt;file&gt;</code></td>
-<td>Blob hash of any file on disk</td>
+<td><code>git hash-object --no-filters &lt;file&gt;</code></td>
+<td>Blob hash of a file&rsquo;s exact bytes</td>
 </tr>
 </tbody>
 </table>
@@ -257,8 +257,8 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 <td>One file&rsquo;s history through inferred renames</td>
 </tr>
 <tr>
-<td><code>git log --all --find-object=&lt;blob&gt;</code></td>
-<td>Commits that added or removed a blob</td>
+<td><code>git log --all -m --find-object=&lt;blob&gt;</code></td>
+<td>Commits that added or removed a blob (<code>-m</code> includes merges)</td>
 </tr>
 </tbody>
 </table>
@@ -276,8 +276,8 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 <td>Files that differ between two commits or trees</td>
 </tr>
 <tr>
-<td><code>git diff --name-status -M -C &lt;a&gt; &lt;b&gt;</code></td>
-<td>The same, with inferred renames and copies and their similarity</td>
+<td><code>git diff --name-status -M --find-copies-harder &lt;a&gt; &lt;b&gt;</code></td>
+<td>The same, with inferred renames and copies</td>
 </tr>
 <tr>
 <td><code>git diff --name-status --no-renames &lt;a&gt; &lt;b&gt;</code></td>
@@ -315,7 +315,7 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 <tbody>
 <tr>
 <td><code>git fsck --unreachable --no-reflogs</code></td>
-<td>Objects that no branch or tag reaches</td>
+<td>Objects that no ref or the index reaches</td>
 </tr>
 <tr>
 <td><code>git reflog</code></td>
@@ -335,7 +335,7 @@ body.sheet h1 { font-size: 1.7rem; margin-bottom: 0.35rem; }
 </tr>
 </tbody>
 </table>
-<p><strong>Before you start:</strong> work on a copy, read <code>.git/config</code> and the hooks, and set <code>GIT_OPTIONAL_LOCKS=0</code>.</p>
+<p><strong>First:</strong> work on a copy, read <code>.git/config</code> and hooks, run <code>git fsck</code> and <code>git replace -l</code>, set <code>GIT_OPTIONAL_LOCKS=0</code>.</p>
 <p class="sheet-note print-only">From the primer “Git Internals for Software Forensics”.</p>
 </section>
 </main>

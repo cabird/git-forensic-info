@@ -6,11 +6,11 @@ To show the effect, the demo repository was cloned and run through `git filter-r
 
 {{diagram:filtered_history}}
 
-The table below pairs the commits of the two repositories by message, author and date, then prints the commit hashes and the `src` tree hash on each side:
+The table below pairs the commits of the two repositories by subject line, author and author date, then prints the commit hashes and the `src` tree hash on each side:
 
 {{output:pairing}}
 
-Every surviving commit has a new hash. Three commits have no counterpart because they touched only `docs` or `tools`. The signature on the release commit is gone, because the commit it signed no longer exists in this history. But the `src` tree hash at each surviving commit is unchanged, because a tree hash depends only on what is under it.
+Every surviving commit has a new hash. (Here even the first commit lost files. Any commits before the first change would have kept their hashes.) Three commits have no counterpart because they touched only `docs` or `tools`. The signature on the release commit is gone, because the commit it signed no longer exists in this history. But the `src` tree hash at each surviving commit is unchanged, because a tree hash depends only on what is under it.
 
 Fingerprints of rewriting:
 
@@ -18,7 +18,8 @@ Fingerprints of rewriting:
 - identical trees under different commit hashes (only metadata, parents or a signature changed);
 - commits in one copy with no counterpart in the other;
 - signatures that are missing or fail where the other copy's verify;
-- more than one root commit (`git rev-list --max-parents=0 --all`), or committer dates bunched at the time of the rewrite.
+- more than one root commit (`git rev-list --max-parents=0 --all`), though merged-in projects and shallow clones produce these too;
+- committer dates bunched at one moment, which rebase, amend and cherry-pick cause (`filter-repo` keeps the original dates).
 
 The pairing technique generalizes. Compare each pair at three levels: commit hash, then root tree hash, then subtree hashes. That tells you exactly what differs and where. When two copies share the start of a long history, you can binary-search `git rev-list --first-parent --reverse` for the first commit hash that differs, because once commit hashes diverge they never agree again.
 

@@ -1,8 +1,8 @@
-$ git hash-object ../loose/util.py
+$ git hash-object --no-filters ../loose/util.py
 4af79c158719bdf44e8c6296c08019724f549d69
 $ git log --all --oneline --find-object=4af79c1
 ec7b6b5 Add tools directory
 06ade68 Fix rounding in util.py
-$ git hash-object ../loose/util-crlf.py
+$ git hash-object --no-filters ../loose/util-crlf.py
 c967958f88e71e7c8fc4d542d51fb85e013ec70d
 $ git log --all --oneline --find-object=c967958f88e71e7c8fc4d542d51fb85e013ec70d
