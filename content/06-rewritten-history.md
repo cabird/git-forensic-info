@@ -24,5 +24,5 @@ Fingerprints of rewriting:
 The pairing technique generalizes. Compare each pair at three levels: commit hash, then root tree hash, then subtree hashes. That tells you exactly what differs and where. When two copies share the start of a long history, you can binary-search `git rev-list --first-parent --reverse` for the first commit hash that differs, because once commit hashes diverge they never agree again.
 
 ::: why
-Different commit hashes do not mean different code, and a rewritten history is not in itself a sign of bad faith. Filtering a production is routine. What matters is being able to show precisely what was kept, what was changed and what was dropped.
+Different commit hashes do not mean different code, and a rewritten history is not necessarily a sign of bad faith, though it may be. Determining bad faith requires being able to determine precisely what was kept, what was changed and what was dropped.
 :::

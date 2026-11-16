@@ -322,7 +322,7 @@ Release 1.0               a30b4b9   a8b1208    003e373       003e373       same<
 <p>The pairing technique generalizes. Compare each pair at three levels: commit hash, then root tree hash, then subtree hashes. That tells you exactly what differs and where. When two copies share the start of a long history, you can binary-search <code>git rev-list --first-parent --reverse</code> for the first commit hash that differs, because once commit hashes diverge they never agree again.</p>
 <div class="callout why">
 <p class="callout-title">Why this matters forensically</p>
-<p>Different commit hashes do not mean different code, and a rewritten history is not in itself a sign of bad faith. Filtering a production is routine. What matters is being able to show precisely what was kept, what was changed and what was dropped.</p>
+<p>Different commit hashes do not mean different code, and a rewritten history is not necessarily a sign of bad faith, though it may be. Determining bad faith requires being able to determine precisely what was kept, what was changed and what was dropped.</p>
 </div>
 </section>
 <section id="comparing-repositories"><h2><span class="num">7</span> Comparing two repositories</h2>
